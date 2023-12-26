@@ -1,3 +1,9 @@
+const hostnames = [
+    "cuutruyen.net",
+    "hetcuutruyen.net",
+    "cuutruyent9sv7.xyz"
+];
+
 chrome.runtime.onInstalled.addListener(function (details) {
     if (details.reason === "install") {
         console.log("Đã cài Cứu Truyện - Chọn Chương");
@@ -8,19 +14,134 @@ chrome.runtime.onInstalled.addListener(function (details) {
     buildInitialChapterList(details.reason);
 });
 
-chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
-    // console.log("Enter onMessage, listener, callback");
-    if (request.mangaId && request.chapterId) {
-        // console.log("Manga id: " + request.mangaId);
-        // console.log("Chapter id: " + request.chapterId);
+chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
+    // console.log(`History state updated in tab ${details.tabId} to ${details.url}`);
+    if(details.frameId === 0) {
+        // Fires only when details.url === currentTab.url
+        chrome.tabs.get(details.tabId, async function(tab) {
+            if(details.url !== null && tab.url === details.url) {
+                // console.log("onHistoryStateUpdated");
 
-        const chapterData = {
-            mangaId: request.mangaId,
-            chapterId: request.chapterId
-        }
-        buildChapterList(chapterData);
+                if (hostnames.findIndex((item) => tab.url.indexOf(item) !== -1) === -1) {
+                    // console.log("Not at Cuu Truyen sites");
+                    return;
+                }
+                // console.log("At Cuu Truyen sites");
+                const { hostname, manga, chapter } = parseUrl(tab.url);
+                // console.log(hostname, manga, chapter);
+
+                if (hostname) {
+                    // console.log(hostname, manga, chapter);
+                
+                    const chapterData = {
+                        cuutruyenHostname: hostname,
+                        mangaId: manga,
+                        chapterId: chapter
+                    }
+                    let message = { 
+                        message: "sendInfo",
+                        payload: { chapterData },
+                        timestamp: Date.now(),
+                    };
+                    if (manga && chapter) { // Build chapter list from the current chapter
+                        // console.log("About to build chapter list");
+                        buildChapterList(chapterData);
+                    }
+                    else if (manga) { // Build chapter list from the last chapter
+                        // console.log("About to build chapter list from last chapter");
+                        buildChapterListFromLastChapter(chapterData);
+                    }
+                    else { // Build manga list: No need to do => Just use the chapter list
+                        // console.log("Manga list");
+                        const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+                        if (myChapterList.length === 0)
+                        {
+                            // console.log("Empty chapter list");
+                            const chapterData = {
+                                cuutruyenHostname: "",
+                                mangaId: "",
+                                chapterId: ""
+                            }
+                            message = { 
+                                message: "sendInfo",
+                                payload: { chapterData },
+                                timestamp: Date.now(),
+                            };
+                        }
+                    }
+
+                    // console.log("Before postMessage:", message);
+                    chrome.runtime.onConnect.addListener(function (port) {
+                        if (port.name === 'getInfo') {
+                            // console.log("Send chapter payload");
+                            // console.log(chapterData);
+                            port.postMessage(message);
+                        }
+                    });
+                } else {
+                    chrome.runtime.onConnect.addListener(function (port) {
+                        // console.log("Send empty payload");
+                        const chapterData = {
+                            cuutruyenHostname: "",
+                            mangaId: "",
+                            chapterId: ""
+                        }
+                        // console.log("Before postMessage:", message);
+                        if (port.name === 'getInfo') {
+                            const message = { 
+                                message: "sendInfo", 
+                                payload: { chapterData },
+                                timestamp: Date.now(),
+                            };
+                            port.postMessage(message);
+                        }
+                    });
+                }
+            }
+        });
     }
 });
+
+function parseUrl(url) {
+    // console.log("Enter parseUrl");
+    for (const aHostname of hostnames) {
+        const pattern = new RegExp(`https://${aHostname}/mangas/(?<manga>.*)/chapters/(?<chapter>.*)`);
+        
+        const match = pattern.exec(url);
+        if (match && match.groups) {
+            const { manga, chapter } = match.groups;
+            // console.log("Manga and Chapter found");
+            // console.log(aHostname, parseInt(manga), parseInt(chapter));
+            return { hostname: aHostname, manga: parseInt(manga), chapter: parseInt(chapter) };
+        }       
+    }
+    for (const aHostname of hostnames) {
+        const pattern = new RegExp(`https://${aHostname}/mangas/(?<manga>.*)`);
+        
+        const match = pattern.exec(url);
+        if (match && match.groups) {
+            const { manga } = match.groups;
+            // console.log("Manga and Chapter found");
+            // console.log(aHostname, parseInt(manga));
+            return { hostname: aHostname, manga: parseInt(manga), chapter: 0 };
+        }       
+    }
+    for (const aHostname of hostnames) {
+        const pattern = new RegExp(`https://${aHostname}`);
+        
+        const match = pattern.test(url);
+        if (match)
+        {
+            // console.log("At Cứu Truyện sites");
+            return { hostname: aHostname, manga: 0, chapter: 0 };
+        }      
+    }
+    console.log("Error: Manga and/or Chapter not found");
+    return { hostname: "", manga: 0, chapter: 0 };
+}
+
+
 
 // TODO: Build list of mangas and corresponding chapters
 
@@ -28,7 +149,7 @@ async function buildInitialChapterList(reason) {
     // console.log("Enter buildInitialChapterList");
 
     if (reason === "update") {
-    // TODO: Use existing chapter list, if existing; otherwise, create empty chapter list
+    // Use existing chapter list, if existing; otherwise, create empty chapter list
         const existingChapterList = await chrome.storage.local.get('chapterList');
         if (existingChapterList) {
             // console.log("Found existing chapter list at updating");
@@ -40,7 +161,7 @@ async function buildInitialChapterList(reason) {
     }
 
     if (reason == "install") {
-    // TODO: Create empty chapter list
+    // Create empty chapter list
         // console.log("Create empty chapter list at installation");
         const myChapterList = [];
         await chrome.storage.local.set({ chapterList: myChapterList });
@@ -48,19 +169,47 @@ async function buildInitialChapterList(reason) {
 }
 
 async function buildChapterList(chapterData) {
-    // console.log("Enter buildChapterList");
-    // console.log("Manga id: " + chapterData.mangaId);
-    // console.log("Chapter id: " + chapterData.chapterId);
-    // const myChapterList = await chrome.storage.local.get(['chapterList']);
-    // console.log(myChapterList);
-
-    fetchChapters(chapterData);
+    const isFromLastChapter = false;
+    fetchChapters(chapterData, isFromLastChapter);
 }
 
-async function fetchChapters(chapterData) {
+async function buildChapterListFromLastChapter(chapterData) {
+    const cuutruyenApiMangaUrl = "https://" + chapterData.cuutruyenHostname + "/api/v2/mangas/";
+
+    const mangaApiResponse = await fetch(cuutruyenApiMangaUrl + chapterData.mangaId.toString()).then((response) => response.json());
+    const mangaData = mangaApiResponse.data;
+
+    const newestChapterId = mangaData.newest_chapter_id;
+    const chaptersCount = mangaData.chapters_count;
+
+    const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+    const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
+
+    if (mangaIndex !== -1
+        && chaptersCount === myChapterList[mangaIndex].chapters.length 
+        && newestChapterId === myChapterList[mangaIndex].chapters[0]) {
+        // console.log("Stop fetching chapter. Already built");
+        return;
+    }
+
+    const currentChapterData = {
+        cuutruyenHostname: chapterData.cuutruyenHostname,
+        mangaId: chapterData.mangaId,
+        chapterId: newestChapterId
+    }
+
+    // console.log("Build from last");
+    // console.log(currentChapterData);
+
+    const isFromLastChapter = true;
+    fetchChaptersFromLastChapter(currentChapterData, isFromLastChapter);
+}
+
+async function fetchChapters(chapterData, isFromLastChapter) {
     try {
         // Function 1
-        await fetchCurrentChapter(chapterData);
+        await fetchCurrentChapter(chapterData, isFromLastChapter);
     
         // Function 2
         // TODO: What conditions to stop fetchNextChapter early?
@@ -71,36 +220,46 @@ async function fetchChapters(chapterData) {
         await fetchPreviousChapter(chapterData);
     
         // console.log("All fetchXChapter functions completed in order");
-        const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+        // const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
         // console.log(myChapterList);
-
-        chrome.runtime.onConnect.addListener(function (port) {
-            if (port.name === 'getInfo') {
-                port.postMessage({ 
-                    message: "sendInfo", 
-                    payload: { chapterData } 
-                });
-            }
-        });
     } catch (error) {
         console.error("An error occurred:", error);
     }
 }
 
-async function fetchCurrentChapter(chapterData) {
+async function fetchChaptersFromLastChapter(chapterData, isFromLastChapter) {
+    try {
+        // Function 1
+        await fetchCurrentChapter(chapterData, isFromLastChapter);
+    
+        // Function 2
+        // TODO: What conditions to stop fetchPreviousChapter early?
+        await fetchPreviousChapter(chapterData);
+    
+        // console.log("All fetchXChapter functions completed in order");
+        // const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+        // console.log(myChapterList);
+    } catch (error) {
+        console.error("An error occurred:", error);
+    }
+}
+
+async function fetchCurrentChapter(chapterData, isFromLastChapter) {
     // console.log("Enter fetchCurrentChapter");
 
-    const cuutruyenApiChapterUrl = await chrome.storage.local.get('cuutruyenHostname').then((response) => "https://" + response.cuutruyenHostname + "/api/v2/chapters/");
+    const cuutruyenApiChapterUrl = "https://" + chapterData.cuutruyenHostname + "/api/v2/chapters/";
     // console.log(cuutruyenApiChapterUrl);
     // console.log("cuutruyenApiChapterUrl: " + cuutruyenApiChapterUrl);
 
     // console.log("Complete API URL: " + cuutruyenApiChapterUrl + chapterData.chapterId.toString());
+
     const apiResponse = await fetch(cuutruyenApiChapterUrl + chapterData.chapterId.toString()).then((response) => response.json());
     const data = apiResponse.data;
 
     // console.log(apiResponse);
     // console.log(data);
 
+    const mangaName = data.manga.name;
     const chapterName = data.name;
     const chapterNumber = data.number;
 
@@ -108,16 +267,18 @@ async function fetchCurrentChapter(chapterData) {
     // console.log(myChapterList);
 
     if (!myChapterList.length) {
-        // Empty chapterList
+        // Empty chapter list
         // console.log("Empty chapter list");
         myChapterList.push({ 
             mangaId: chapterData.mangaId,
+            mangaName: mangaName,
             chapters: [ chapterData.chapterId ],
-            readChapters: [ chapterData.chapterId ],
+            readChapters: [ isFromLastChapter ? undefined : chapterData.chapterId ],
             chapterNames: [ chapterName !== null ? chapterName : "" ],
             chapterNumbers: [ chapterNumber ]
         })
         await chrome.storage.local.set({ chapterList: myChapterList });
+        // console.log(myChapterList);
         return;
     }
 
@@ -128,12 +289,14 @@ async function fetchCurrentChapter(chapterData) {
         // console.log("Non-empty chapter list. Failed to find manga id in storage");
         myChapterList.push({ 
             mangaId: chapterData.mangaId,
+            mangaName: mangaName,
             chapters: [ chapterData.chapterId ],
-            readChapters: [ chapterData.chapterId ],
+            readChapters: [ isFromLastChapter ? "" : chapterData.chapterId ],
             chapterNames: [ chapterName !== null ? chapterName : "" ],
             chapterNumbers: [ chapterNumber ]
         })
         await chrome.storage.local.set({ chapterList: myChapterList });
+        // console.log(myChapterList);
         return;
     }
 
@@ -143,10 +306,11 @@ async function fetchCurrentChapter(chapterData) {
     if (chapterIndex === -1) {
         // console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter id in storage.");
         myChapterList[mangaIndex].chapters.push(chapterData.chapterId);
-        myChapterList[mangaIndex].readChapters.push(chapterData.chapterId);
+        myChapterList[mangaIndex].readChapters.push((isFromLastChapter ? "" : chapterData.chapterId));
         myChapterList[mangaIndex].chapterNames.push(chapterName !== null ? chapterName : "");
-        myChapterList[mangaIndex].chapterNumbers.push(chapterNumbers);
+        myChapterList[mangaIndex].chapterNumbers.push(chapterNumber);
         await chrome.storage.local.set({ chapterList: myChapterList });
+        // console.log(myChapterList);
         return;
     }
 
@@ -155,8 +319,9 @@ async function fetchCurrentChapter(chapterData) {
     // console.log("ReadChapterIndex: " + readChapterIndex);
     if (readChapterIndex === -1) {
         // console.log("Non-empty chapter list. Found manga id in storage. Found chapter id in storage. Failed to find read chapter id in storage");
-        myChapterList[mangaIndex].readChapters.push(chapterData.chapterId);
+        myChapterList[mangaIndex].readChapters.push((isFromLastChapter ? "" : chapterData.chapterId));
         await chrome.storage.local.set({ chapterList: myChapterList });
+        // console.log(myChapterList);
         return;
     }
 }
@@ -164,7 +329,24 @@ async function fetchCurrentChapter(chapterData) {
 async function fetchNextChapter(chapterData) {
     // console.log("Enter fetchNextChapter");
 
-    const cuutruyenApiChapterUrl = await chrome.storage.local.get('cuutruyenHostname').then((response) => "https://" + response.cuutruyenHostname + "/api/v2/chapters/");
+    const cuutruyenApiMangaUrl = "https://" + chapterData.cuutruyenHostname + "/api/v2/mangas/";
+
+    const mangaApiResponse = await fetch(cuutruyenApiMangaUrl + chapterData.mangaId.toString()).then((response) => response.json());
+    const mangaData = mangaApiResponse.data;
+
+    const newestChapterId = mangaData.newest_chapter_id;
+
+    const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+    const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
+
+    if (newestChapterId === myChapterList[mangaIndex].chapters[0]) {
+        // console.log("Stop fetching next chapter. Already built");
+        return;
+    }
+
+    const cuutruyenApiChapterUrl = "https://" + chapterData.cuutruyenHostname + "/api/v2/chapters/";
+    
     // console.log(cuutruyenApiChapterUrl);
     // console.log("cuutruyenApiChapterUrl: " + cuutruyenApiChapterUrl);
 
@@ -186,16 +368,16 @@ async function fetchNextChapter(chapterData) {
         return; // Last chapter
     }
 
-    const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
     // console.log(myChapterList);
 
-    const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
+    // const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
 
     // console.log("Next Chapter. MangaIndex: " + mangaIndex);
     if (mangaIndex === -1) {
         // console.log("Non-empty chapter list. Failed to find manga id in storage");
         myChapterList.push({ 
             mangaId: chapterData.mangaId,
+            mangaName: mangaName,
             chapters: [ nextChapterId ],
             chapterNames: [ nextChapterName !== null ? nextChapterName : "" ],
             chapterNumbers: [ nextChapterNumber ]
@@ -215,6 +397,7 @@ async function fetchNextChapter(chapterData) {
     }
 
     const nextChapterData = {
+        cuutruyenHostname: chapterData.cuutruyenHostname,
         mangaId: chapterData.mangaId,
         chapterId: nextChapterId
     }
@@ -225,7 +408,7 @@ async function fetchNextChapter(chapterData) {
 async function fetchPreviousChapter(chapterData) {
     // console.log("Enter fetchPreviousChapter");
 
-    const cuutruyenApiChapterUrl = await chrome.storage.local.get('cuutruyenHostname').then((response) => "https://" + response.cuutruyenHostname + "/api/v2/chapters/");
+    const cuutruyenApiChapterUrl = "https://" + chapterData.cuutruyenHostname + "/api/v2/chapters/";
     // console.log(cuutruyenApiChapterUrl);
     // console.log("cuutruyenApiChapterUrl: " + cuutruyenApiChapterUrl);
 
@@ -257,6 +440,7 @@ async function fetchPreviousChapter(chapterData) {
         // console.log("Non-empty chapter list. Failed to find manga id in storage");
         myChapterList.push({ 
             mangaId: chapterData.mangaId,
+            mangaName: mangaName,
             chapters: [ previousChapterId ],
             chapterNames: [ previousChapterName !== null ? previousChapterName : "" ],
             chapterNumbers: [ previousChapterNumber ]
@@ -275,6 +459,7 @@ async function fetchPreviousChapter(chapterData) {
     }
 
     const previousChapterData = {
+        cuutruyenHostname: chapterData.cuutruyenHostname,
         mangaId: chapterData.mangaId,
         chapterId: previousChapterId
     }

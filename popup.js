@@ -1,44 +1,108 @@
 // TODO: Find a way to delay popup.html until background.js is done with building the chapter list
 
+const port = chrome.runtime.connect({name:"getInfo"});
 
+port.onMessage.addListener(async function ({payload}, sender, sendResponse) {
+    // console.log("Enter onMessage, listener, callback");
 
-chrome.runtime.connect({name:"getInfo"}).onMessage.addListener(async function ({message, payload}, sender, sendResponse) {
-    console.log("Enter onMessage, listener, callback");
-    if (payload) {
-        // alert("Chapter list built. Ready to render");
+    // Check if the message is too old (e.g., older than 1 second)
+    const timeoutLimit = 1000; // 1 second
+    if (Date.now() - payload.timestamp > timeoutLimit) {
+        // console.log("Received an old message, ignoring it.");
+        return;
+    }
+    // Process the message
+    // console.log("Received new message");
+    // console.log(payload);
+ 
+    if (payload.chapterData.cuutruyenHostname) {
+        
+        // console.log("Receive payload");
+        
+        document.getElementById("ChonChuongTable").innerHTML = "";
 
-        // alert(payload.chapterData.mangaId);
+        if (!payload.chapterData.mangaId && !payload.chapterData.mangaId) {
+            // Liệt kê các truyện đã đọc, tại trang chủ Cứu Truyện
+            // console.log("Manga list");
+            document.getElementById("ChonChuongTable").innerHTML = await renderManga(payload.chapterData);
 
-        document.getElementById("ChonChuongTable").innerHTML = await render(payload.chapterData);
+            document.querySelectorAll("#gotoManga").forEach((button) => {
+                button.addEventListener("click", (() => {
+                    // console.log("Button Clicked");
+                    const data_id = button.getAttribute("data-id");
+                    // console.log("At: " + data_id);
+                    gotoManga({ 
+                        cuutruyenHostname: payload.chapterData.cuutruyenHostname,
+                        mangaId: data_id
+                    });
+                }))
+            });
 
-        document.querySelectorAll("#goto").forEach((button) => {
-            button.addEventListener("click", (() => {
-                console.log("Button Clicked");
-                const data_id = button.getAttribute("data-id");
-                console.log(data_id);
-                const splitDataId = data_id.split(".");
-                console.log("At: " + splitDataId[0] + "/" + splitDataId[1]);
-                gotoChapter({ mangaId: splitDataId[0], chapterId: splitDataId[1] });
-            }))
-        });
+        }
+        else if (payload.chapterData.mangaId) {
+            // Liệt kê các chương của truyện, tại trang thông tin truyện và tại trang chương truyện
+            // console.log("Chapter list");
+            document.getElementById("ChonChuongTable").innerHTML = await renderChapter(payload.chapterData);
+
+            document.querySelectorAll("#gotoChapter").forEach((button) => {
+                button.addEventListener("click", (() => {
+                    // console.log("Button Clicked");
+                    const data_id = button.getAttribute("data-id");
+                    // console.log(data_id);
+                    const splitDataId = data_id.split(".");
+                    // console.log("At: " + splitDataId[0] + "/" + splitDataId[1]);
+                    gotoChapter({ 
+                        cuutruyenHostname: payload.chapterData.cuutruyenHostname,
+                        mangaId: splitDataId[0],
+                        chapterId: splitDataId[1]
+                    });
+                }))
+            });
+        }
+    } else {
+        // console.log("Receive empty");
+        document.getElementById("ChonChuongTable").innerHTML = "";
+        const theadHtml = `
+            <thead>
+                <tr>
+                    <th>Bạn đang không đọc truyện</th>
+                </tr>
+            </thead>
+        `;
+        document.getElementById("ChonChuongTable").innerHTML = theadHtml;
     }
 });
 
-async function render(chapterData) {
+async function renderChapter(chapterData) {
     let html = "";
 
-    const currentMangaChapterList = await fetchApiChapters(chapterData);
+    const currentMangaChapterList = await fetchChapters(chapterData);
     
     if (!currentMangaChapterList) {
         return "";
     }
     
-    html = constructTable(currentMangaChapterList);
+    html = constructTableChapter(currentMangaChapterList);
 
     return html;  
 }
 
-async function fetchApiChapters(chapterData) {
+async function renderManga(mangaData) {
+    // console.log("Render manga");
+    let html = "";
+
+    const currentMangaList = await fetchMangas(mangaData);
+    
+    if (!currentMangaList) {
+        return "";
+    }
+    
+    html = constructTableManga(currentMangaList);
+
+    return html;  
+}
+
+async function fetchChapters(chapterData) {
     const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
     const resultItem = myChapterList.find((item) => item.mangaId == chapterData.mangaId);
@@ -50,14 +114,28 @@ async function fetchApiChapters(chapterData) {
     }
     // console.log("Found Item") ;
 
-    // const resultChapters = resultItem.chapters;
-    // console.log(resultChapters);
-
-    // console.log(resultItem);
     return resultItem;
 }
 
-async function constructTable(mangaChapterList) {
+async function fetchMangas(mangaData) {
+    const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+    const resultMangaList = myChapterList.map((item) => ({
+        mangaId: item.mangaId,
+        mangaName: item.mangaName
+    }));
+
+    if (!resultMangaList)
+    {
+        // console.log("Not found");
+        return null;
+    }
+    // console.log("Found Item") ;
+
+    return resultMangaList;
+}
+
+async function constructTableChapter(mangaChapterList) {
     const theadHtml = `
         <thead>
             <tr>
@@ -69,10 +147,11 @@ async function constructTable(mangaChapterList) {
     `;
     // console.log("Done thead");
 
-    console.log(mangaChapterList);
+    // console.log(mangaChapterList);
     const tbodyHtml = `
         <tbody>
             ${mangaChapterList.chapters.map(function(chapter, index) {
+                // console.log("This chapter", chapter);
                 const id = mangaChapterList.readChapters.some((readChapter) => readChapter == chapter) ? "read" : "noread";
 
                 return (
@@ -80,10 +159,44 @@ async function constructTable(mangaChapterList) {
                 <tr id="${id}">
                     <td>${mangaChapterList.chapterNumbers[index]}</td>
                     <td>${mangaChapterList.chapterNames[index]}</td>
-                    <td><button id="goto" data-id="${mangaChapterList.mangaId}.${chapter}">Đọc</button></td>
+                    <td><button id="gotoChapter" data-id="${mangaChapterList.mangaId}.${chapter}">Đọc</button></td>
                 </tr>
                 `)
-            }).join("")};
+            }).join("")}
+        </tbody>
+    `;
+    // console.log("Done tbody");
+
+    return theadHtml + tbodyHtml;
+}
+
+async function constructTableManga(mangaList) {
+    const theadHtml = `
+        <thead>
+            <tr>            
+                <th>STT</th>
+                <th>Truyện</th>
+                <th>Đọc Truyện</th>
+            </tr>
+        </thead>
+    `;
+    // console.log("Done thead");
+
+    // console.log(mangaList);
+    const tbodyHtml = `
+        <tbody>
+            ${mangaList.map(function({mangaId, mangaName}, index) {
+                // console.log("This manga", mangaId, mangaName);
+
+                return (
+                `
+                <tr">
+                    <td>${index+1}</td>
+                    <td>${mangaName}</td>
+                    <td><button id="gotoManga" data-id="${mangaId}">Đọc</button></td>
+                </tr>
+                `)
+            }).join("")}
         </tbody>
     `;
     // console.log("Done tbody");
@@ -92,14 +205,23 @@ async function constructTable(mangaChapterList) {
 }
 
 async function gotoChapter(chapterData) {
-    console.log(chapterData.mangaId);
-    console.log(chapterData.chapterId);
-    const chapterUrl = await chrome.storage.local.get('cuutruyenHostname').then((response) => `https://${response.cuutruyenHostname}/mangas/${chapterData.mangaId}/chapters/${chapterData.chapterId}`);
+    const chapterUrl = `https://${chapterData.cuutruyenHostname}/mangas/${chapterData.mangaId}/chapters/${chapterData.chapterId}`;
 
     window.close();
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         const activeTabId = tabs[0].id;
         // Redirect the active tab
         chrome.tabs.update(activeTabId, { url: chapterUrl });
+    });
+}
+
+async function gotoManga(mangaData) {
+    const mangaUrl = `https://${mangaData.cuutruyenHostname}/mangas/${mangaData.mangaId}`;
+
+    window.close();
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTabId = tabs[0].id;
+        // Redirect the active tab
+        chrome.tabs.update(activeTabId, { url: mangaUrl });
     });
 }
