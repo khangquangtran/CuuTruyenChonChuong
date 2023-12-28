@@ -4,14 +4,21 @@ const hostnames = [
     "cuutruyent9sv7.xyz"
 ];
 
-chrome.runtime.onInstalled.addListener(function (details) {
+chrome.runtime.onInstalled.addListener(async function (details) {
     if (details.reason === "install") {
         console.log("Đã cài Cứu Truyện - Chọn Chương");
     } else if (details.reason === "update") {
-        console.log("Đã cập nhật Cứu Truyện - Chọn Chương");  
+        console.log("Đã cập nhật Cứu Truyện - Chọn Chương");
     }
 
     buildInitialChapterList(details.reason);
+
+    const chapterData = {
+        cuutruyenHostname: "",
+        mangaId: "",
+        chapterId: ""
+    }
+    await chrome.storage.local.set({ activeChapterData: chapterData });
 });
 
 chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
@@ -30,6 +37,10 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
                 const { hostname, manga, chapter } = parseUrl(tab.url);
                 // console.log(hostname, manga, chapter);
 
+                const message = { 
+                    message: "sendInfo"
+                };
+
                 if (hostname) {
                     // console.log(hostname, manga, chapter);
                 
@@ -38,11 +49,8 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
                         mangaId: manga,
                         chapterId: chapter
                     }
-                    let message = { 
-                        message: "sendInfo",
-                        payload: { chapterData },
-                        timestamp: Date.now(),
-                    };
+                    await chrome.storage.local.set({ activeChapterData: chapterData });
+                    
                     if (manga && chapter) { // Build chapter list from the current chapter
                         // console.log("About to build chapter list");
                         buildChapterList(chapterData);
@@ -63,44 +71,67 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
                                 mangaId: "",
                                 chapterId: ""
                             }
-                            message = { 
-                                message: "sendInfo",
-                                payload: { chapterData },
-                                timestamp: Date.now(),
-                            };
+                            await chrome.storage.local.set({ activeChapterData: chapterData });
                         }
                     }
-
-                    // console.log("Before postMessage:", message);
-                    chrome.runtime.onConnect.addListener(function (port) {
-                        if (port.name === 'getInfo') {
-                            // console.log("Send chapter payload");
-                            // console.log(chapterData);
-                            port.postMessage(message);
-                        }
-                    });
                 } else {
-                    chrome.runtime.onConnect.addListener(function (port) {
-                        // console.log("Send empty payload");
-                        const chapterData = {
-                            cuutruyenHostname: "",
-                            mangaId: "",
-                            chapterId: ""
-                        }
-                        // console.log("Before postMessage:", message);
-                        if (port.name === 'getInfo') {
-                            const message = { 
-                                message: "sendInfo", 
-                                payload: { chapterData },
-                                timestamp: Date.now(),
-                            };
-                            port.postMessage(message);
-                        }
-                    });
+                    const chapterData = {
+                        cuutruyenHostname: "",
+                        mangaId: "",
+                        chapterId: ""
+                    }
+                    await chrome.storage.local.set({ activeChapterData: chapterData });
                 }
+
+                // await chrome.storage.local.set({ postMessage: message });
+                chrome.runtime.onConnect.addListener(async function (port) {
+                    // console.log("Send message to popup script. onHistoryStateUpdated");                
+                    // console.log("Before postMessage:", message);
+                    if (port.name === 'getInfo') {
+                        port.postMessage(message);
+                    }
+                });
             }
         });
     }
+});
+
+chrome.runtime.onConnect.addListener(async function (port) {
+    // console.log("Send message to popup script");
+    
+    if (port.name === 'getInfo') {
+        // Function BELOW: Will raise error if inspecting the popup.
+        // Otherwise, normal use (clicking the extension icon) raises NO ERROR.
+        chrome.tabs.query({ active: true, currentWindow: true }, async function (tabs) {
+			const currentTab = tabs[0];
+
+            const { hostname, manga, chapter } = parseUrl(currentTab.url);
+            const message = {
+                message: "sendInfo"
+            }
+            const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+			if (myChapterList.length !== 0 && hostname) {
+                // console.log("At Cứu Truyện sites");
+                const chapterData = {
+                    cuutruyenHostname: hostname,
+                    mangaId: manga,
+                    chapterId: chapter
+                }
+                await chrome.storage.local.set({ activeChapterData: chapterData });
+			} else {
+                // console.log("Not at Cứu Truyện sites");
+                const chapterData = {
+                    cuutruyenHostname: "",
+                    mangaId: "",
+                    chapterId: ""
+                }
+                await chrome.storage.local.set({ activeChapterData: chapterData });
+            }
+            // console.log("Before postMessage:", message);
+            port.postMessage(message);
+        });
+    };
 });
 
 function parseUrl(url) {
@@ -137,13 +168,11 @@ function parseUrl(url) {
             return { hostname: aHostname, manga: 0, chapter: 0 };
         }      
     }
-    console.log("Error: Manga and/or Chapter not found");
+    // console.log("Error: Manga and/or Chapter not found");
     return { hostname: "", manga: 0, chapter: 0 };
 }
 
-
-
-// TODO: Build list of mangas and corresponding chapters
+// TODO - DONE: Build list of mangas and corresponding chapters
 
 async function buildInitialChapterList(reason) {
     // console.log("Enter buildInitialChapterList");
@@ -155,7 +184,7 @@ async function buildInitialChapterList(reason) {
             // console.log("Found existing chapter list at updating");
             return; // There exists a chapterList => no need to create a new one.
         }
-        
+
         const myChapterList = [];
         await chrome.storage.local.set({ chapterList: myChapterList });
     }
@@ -170,7 +199,8 @@ async function buildInitialChapterList(reason) {
 
 async function buildChapterList(chapterData) {
     const isFromLastChapter = false;
-    fetchChapters(chapterData, isFromLastChapter);
+    await fetchChapters(chapterData, isFromLastChapter);
+    await sortAndStoreChaperList(chapterData);
 }
 
 async function buildChapterListFromLastChapter(chapterData) {
@@ -203,7 +233,8 @@ async function buildChapterListFromLastChapter(chapterData) {
     // console.log(currentChapterData);
 
     const isFromLastChapter = true;
-    fetchChaptersFromLastChapter(currentChapterData, isFromLastChapter);
+    await fetchChaptersFromLastChapter(currentChapterData, isFromLastChapter);
+    await sortAndStoreChaperList(currentChapterData);
 }
 
 async function fetchChapters(chapterData, isFromLastChapter) {
@@ -214,11 +245,11 @@ async function fetchChapters(chapterData, isFromLastChapter) {
         // Function 2
         // TODO: What conditions to stop fetchNextChapter early?
         await fetchNextChapter(chapterData);
-    
+
         // Function 3
         // TODO: What conditions to stop fetchPreviousChapter early?
         await fetchPreviousChapter(chapterData);
-    
+
         // console.log("All fetchXChapter functions completed in order");
         // const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
         // console.log(myChapterList);
@@ -231,11 +262,11 @@ async function fetchChaptersFromLastChapter(chapterData, isFromLastChapter) {
     try {
         // Function 1
         await fetchCurrentChapter(chapterData, isFromLastChapter);
-    
+
         // Function 2
         // TODO: What conditions to stop fetchPreviousChapter early?
         await fetchPreviousChapter(chapterData);
-    
+
         // console.log("All fetchXChapter functions completed in order");
         // const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
         // console.log(myChapterList);
@@ -465,4 +496,35 @@ async function fetchPreviousChapter(chapterData) {
     }
 
     await fetchPreviousChapter(previousChapterData);
+}
+
+async function sortAndStoreChaperList(chapterData) {
+    let myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+    const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId);
+
+    const chapterIdList = myChapterList[mangaIndex].chapters;
+    const chapterNameList = myChapterList[mangaIndex].chapterNames;
+    const chapterNumberList = myChapterList[mangaIndex].chapterNumbers;
+    const readChapterList = myChapterList[mangaIndex].readChapters;
+
+    // Create a combined array of tuples
+    const combinedChapterList = chapterIdList.map((chapterId, index) => [chapterId, chapterNameList[index], chapterNumberList[index]]);
+
+    // Sort the combined array based on the first element (data values)
+    combinedChapterList.sort((tuple_a, tuple_b) => tuple_b[0] - tuple_a[0]);
+    // Sort the data array in descending order
+    readChapterList.sort((readChapter_a, readChapter_b) => readChapter_b - readChapter_a);
+
+    // Extract the sorted elements into the new arrays
+    const sortChapterIdList = combinedChapterList.map(tuple => tuple[0]);
+    const sortChapterNameList = combinedChapterList.map(tuple => tuple[1]);
+    const sortChapterNumberList = combinedChapterList.map(tuple => tuple[2]);
+
+    myChapterList.chapters = sortChapterIdList;
+    myChapterList.chapterNames = sortChapterNameList;
+    myChapterList.chapterNumbers = sortChapterNumberList;
+    myChapterList.readChapters = readChapterList;
+
+    await chrome.storage.local.set({ chapterList: myChapterList });
 }
