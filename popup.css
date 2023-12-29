@@ -43,3 +43,7 @@ button {
 #read {
 	background-color: #00bb22;
 }
+
+.hidden {
+	display: none;
+}
