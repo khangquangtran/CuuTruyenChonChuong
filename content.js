@@ -10,6 +10,17 @@ const hostnames = [
 	"cuutruyent9sv7.xyz"
 ];
 
+let extensionSavedOptions = {
+	PgUpPgDn: {
+		ChuyenChuong: true,
+		CuonTrang: false
+	},
+	XoaTruyen: false,
+	XoaDaDocTruyen: false
+}
+
+let isZenUI = false;
+
 watchHrefChanges();
 
 function watchHrefChanges() {
@@ -22,6 +33,17 @@ function watchHrefChanges() {
 			position: window.getComputedStyle(document.body).position,
 			top: window.getComputedStyle(document.body).top,
 		};
+
+		chrome.runtime.onMessage.addListener(async function({message}, sender, sendResponse) {
+			console.log("Save notification from options script, forwarded by background script");
+		
+			if (message === "saveOptions") {
+				console.log("Save notification from options script");
+				extensionSavedOptions = await chrome.storage.local.get('savedOptions').then((response) => response.savedOptions);
+		
+				console.log(extensionSavedOptions);
+			}
+		});
 
 		// watchUiChanges();
 		if (currentBodyStyle.position === 'static' 
@@ -159,7 +181,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Heading");
 				// console.log("Add listener for clicking");
 				chapterSelectListHeading.addEventListener('click', function() {
-					updateOptions("Heading");
+					updateChapterSelectListOptions("Heading");
 				});
 				// updateOptions
 			}
@@ -174,7 +196,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Top");
 				// console.log("Add listener for clicking");
 				chapterSelectListTop.addEventListener('click', function() {
-					updateOptions("Top");
+					updateChapterSelectListOptions("Top");
 				});
 				// updateOptions
 			}
@@ -192,7 +214,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Trailing");
 				// console.log("Add listener for clicking");
 				chapterSelectListTrailing.addEventListener('click', function() {
-					updateOptions("Trailing");
+					updateChapterSelectListOptions("Trailing");
 				});
 				// updateOptions
 			}
@@ -209,7 +231,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Bottom");
 				// console.log("Add listener for clicking");
 				chapterSelectListBottom.addEventListener('click', function() {
-					updateOptions("Bottom");
+					updateChapterSelectListOptions("Bottom");
 				});
 				// updateOptions
 			}
@@ -229,7 +251,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Top");
 				// console.log("Add listener for clicking");
 				chapterSelectListTop.addEventListener('click', function() {
-					updateOptions("Top");
+					updateChapterSelectListOptions("Top");
 				});
 				// updateOptions
 			}
@@ -246,7 +268,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Bottom");
 				// console.log("Add listener for clicking");
 				chapterSelectListBottom.addEventListener('click', function() {
-					updateOptions("Bottom");
+					updateChapterSelectListOptions("Bottom");
 				});
 				// updateOptions
 			}
@@ -266,7 +288,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Heading");
 				// console.log("Add listener for clicking");
 				chapterSelectListHeading.addEventListener('click', function() {
-					updateOptions("Heading");
+					updateChapterSelectListOptions("Heading");
 				});
 				// updateOptions
 			}
@@ -283,7 +305,7 @@ async function handleAddSelectListAndMarkRead(uiButtonText) {
 				// console.log("Select drop-down list available. Trailing");
 				// console.log("Add listener for clicking");
 				chapterSelectListTrailing.addEventListener('click', function() {
-					updateOptions("Trailing");
+					updateChapterSelectListOptions("Trailing");
 				});
 				// updateOptions
 			}
@@ -393,7 +415,7 @@ function constructChapterSelectList(navigationButtonGroup, windowLocation, chapt
 	return html + `${navigationButtonGroup.innerHTML}`;
 }
 
-async function updateOptions(headingOrTrailing) {
+async function updateChapterSelectListOptions(headingOrTrailing) {
 	// console.log("Update on click ..."); 
 	await chrome.runtime.sendMessage({message: "getInfo"});
 
@@ -457,4 +479,122 @@ async function updateOptions(headingOrTrailing) {
 	});
 
 	await chrome.storage.local.set({ chapterListSorted: isChapterListSorted });
+}
+
+chrome.storage.onChanged.addListener(async function (changes, namespace) {
+	// console.log("A change in local storage");
+	if (namespace === "local") {
+		// console.log("Update savedOptions");
+		extensionSavedOptions = await chrome.storage.local.get('savedOptions').then((response) => response.savedOptions);
+	}
+});
+
+function checkZenUIState() {
+	const UIButton = document.querySelector('[class="block border-4 rounded-lg p-2 flex-1 bg-gray-900 bg-opacity-50 hover:cursor-pointer transition border-transparent"]');
+
+	if (UIButton) {
+		// console.log("Found UI button");
+		if (UIButton.innerText.toLowerCase().includes("zen")) {
+			isZenUI = false;
+		}
+		else {
+			isZenUI = true;
+		}
+	}
+
+	// console.log("Is Zen UI now:", isZenUI);
+}
+
+document.addEventListener('keydown', PageUpPageDownOverride, true);
+
+async function PageUpPageDownOverride(event) {
+	// console.log("A key is pressed");
+
+	// console.log(extensionSavedOptions);
+	// checkZenUIState();
+
+	// Kiểm tra tùy chọn được lưu
+	if (extensionSavedOptions.PgUpPgDn.CuonTrang === false) {
+		return;
+	}
+
+	if (event.key === "PageUp") {
+		// PageUp
+		// console.log("Override PageUp key");
+		event.stopImmediatePropagation(); // Prevent Cứu Truyện's overridden PageUp behavior
+		event.preventDefault(); // Prevent default PageUp behavior
+		
+		window.scrollBy(0, -window.innerHeight * 2/3.0); // Scroll up by one page
+	}
+	if (event.key === "PageDown") {
+		// PageDown
+		// console.log("Override PageDown key");
+		event.stopImmediatePropagation(); // Prevent Cứu Truyện's overridden PageDown behavior
+		event.preventDefault(); // Prevent default PageDown behavior
+		
+		window.scrollBy(0, window.innerHeight * 2/3.0); // Scroll down by one page
+	}
+
+	// Replacement for the PageUp and PageDown keys (needing some other keys to handle go to previous/next chapters)
+
+	const currentHostname = window.location.hostname;
+	const currentPathname = window.location.pathname;
+
+	// console.log(currentHostname, currentPathname);
+	if (!hostnames.includes(currentHostname)){
+		// console.log("Not at Cứu Truyện sites");
+		return;
+	}
+	// console.log("At Cứu Truyện sites");
+
+	const { manga, chapter } = parsePathname(currentPathname);
+
+	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+	// console.log({myChapterList});
+
+	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === manga);
+
+	if (mangaIndex === -1) {
+		// console.log("Manga not found");
+		return;
+	}
+
+	const chapterIndex = myChapterList[mangaIndex].chapters.findIndex((item) => item === chapter);
+
+	if (chapterIndex === -1) {
+		// console.log("Chapter not found");
+		return;
+	}
+
+	// Assume sortOrder === "descending" (refer to sortOrder in background script).
+	// Swap the + and - if change sortOrder to "ascending".
+	let nextChapterId = myChapterList[mangaIndex].chapters[chapterIndex - 1];
+	let previousChapterId = myChapterList[mangaIndex].chapters[chapterIndex + 1];
+
+	const nextChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${nextChapterId}`;
+	const previousChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${previousChapterId}`;
+
+	// To next chapter (equivalent to Cứu Truyện's customized behavior for PageUp)
+	if (event.key === "Insert") {
+		// Insert
+		// console.log("Override Insert key");
+		event.stopImmediatePropagation(); // Prevent any overridden Insert behavior
+		event.preventDefault(); // Prevent default Insert behavior
+		
+		gotoChapter(nextChapterHref);
+	}
+	// To previous chapter (equivalent to Cứu Truyện's customized behavior for PageDown)
+	if (event.key === "Delete") {
+		// Delete
+		// console.log("Override Delete key");
+		event.stopImmediatePropagation(); // Prevent any overridden Delete behavior
+		event.preventDefault(); // Prevent default Delete behavior
+		
+		gotoChapter(previousChapterHref);
+	}
+}
+
+async function gotoChapter(chapterUrl) {
+	window.location.href = chapterUrl;
 }

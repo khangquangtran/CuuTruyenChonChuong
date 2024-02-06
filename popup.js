@@ -1,5 +1,14 @@
 // TODO: Find a way to delay popup.html until background.js is done with building the chapter list
 
+let extensionSavedOptions = {
+	PgUpPgDn: {
+		ChuyenChuong: true,
+		CuonTrang: false
+	},
+	XoaTruyen: false,
+	XoaDaDocTruyen: false
+}
+
 const port = chrome.runtime.connect({name:"getInfo"});
 
 port.onMessage.addListener(async function ({message}, sender, sendResponse) {
@@ -111,7 +120,7 @@ async function renderManga(mangaData) {
 async function fetchChapters(chapterData) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-	const resultItem = myChapterList.find((item) => item.mangaId == chapterData.mangaId);
+	const resultItem = myChapterList.find((item) => item.mangaId === chapterData.mangaId);
 
 	if (!resultItem)
 	{

@@ -16,6 +16,7 @@ chrome.runtime.onInstalled.addListener(async function (details) {
 	}
 
 	buildInitialChapterList(details.reason);
+	setInitialSavedOptions(details.reason)
 
 	const chapterData = {
 		cuutruyenHostname: "",
@@ -165,7 +166,7 @@ chrome.runtime.onMessage.addListener(async function({message}, sender, sendRespo
 	// console.log(sender.tab ?
 	// 			"from a content script:" + sender.tab.url :
 	// 			"from the extension");
-	if (message == "getInfo") {
+	if (message === "getInfo") {
 		// Function BELOW: Will raise error if inspecting the popup.
 		// Otherwise, normal use (clicking the extension icon) raises NO ERROR.
 		const currentTab = sender;
@@ -256,11 +257,49 @@ async function buildInitialChapterList(reason) {
 		await chrome.storage.local.set({ chapterList: myChapterList });
 	}
 
-	if (reason == "install") {
+	if (reason === "install") {
 	// Create empty chapter list
 		// console.log("Create empty chapter list at installation");
 		const myChapterList = [];
 		await chrome.storage.local.set({ chapterList: myChapterList });
+	}
+}
+
+async function setInitialSavedOptions(reason) {
+	// console.log("Enter setInitialOptions");
+
+	if (reason === "update") {
+	// Use existing saved options, if existing; otherwise, create empty chapter list
+		const existingSavedOptions = await chrome.storage.local.get('savedOptions');
+
+		if (existingSavedOptions) {
+			// console.log("Found existing saved options at updating");
+			return; // There exist saved options => no need to create a new one.
+		}
+
+		const savedOptions = {
+			PgUpPgDn: {
+				ChuyenChuong: true,
+				CuonTrang: false
+			},
+			XoaTruyen: false,
+			XoaDaDocTruyen: false
+		};
+		await chrome.storage.local.set({ savedOptions: savedOptions });
+	}
+
+	if (reason === "install") {
+	// Create new saved options
+		// Default options, at install
+		const savedOptions = {
+			PgUpPgDn: {
+				ChuyenChuong: true,
+				CuonTrang: false
+			},
+			XoaTruyen: false,
+			XoaDaDocTruyen: false
+		};
+		await chrome.storage.local.set({ savedOptions: savedOptions });
 	}
 }
 

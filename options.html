@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8">
+		<meta name="viewport">
+		<meta content="width=device-width, initial-scale=1.0">
+		<title title="Cứu Truyện - Chọn Chương - Tùy Chọn"Cứu Truyện - Chọn Chương - Tùy Chọn></title>
+		<link rel="styleSheet" href="popup.css"/>
+    </head>
+    <body>
+        <h1>Cứu Truyện - Chọn Chương - Tùy Chọn</h1>
+        <hr>
+        <br>
+            <h2>Chức năng phím PageUp/PageDown</h2>
+            <br>
+                <input type="radio" id="ChuyenChuongRadio" name="PgUpPgDn" value="ChuyenChuong">
+                <label for="ChuyenChuongRadio">Chuyển Chương</label><br>
+                <br>
+                <input type="radio" id="CuonTrangRadio" name="PgUpPgDn" value="CuonTrang">
+                <label for="CuonTrangRadio">Cuộn Trang (Lưu ý: Dùng phím INS/DEL để tới Chương Sau/Chương Trước)</label><br>
+                <br>
+                <button id="SaveOptionsPgUpPgDnBtn" type="button" disabled="disabled">Lưu</button>
+                <br>
+        <hr>
+        <hr>
+        <br>
+            <h2>Chức năng xóa Truyện</h2>
+            <br>
+                <input type="checkbox" id="XoaTruyenCheckbox" name="XoaTruyen" value="KichHoat">
+                <label for="XoaTruyenCheckbox">Kích hoạt</label><br>
+                <br>
+                <button id="SaveOptionsXoaTruyenBtn" type="button" disabled="disabled">Lưu</button>
+                <br>
+        <hr>
+        <hr>
+        <br>
+            <h2>Chức năng xóa đánh dấu "Đã đọc" của Chương truyện</h2>
+            <br>
+                <input type="checkbox" id="XoaDaDocChuongCheckbox" name="XoaDaDocChuong" value="KichHoat">
+                <label for="XoaDaDocChuongCheckbox">Kích hoạt</label><br>
+                <br>
+                <button id="SaveOptionsXoaDaDocChuongBtn" type="button" disabled="disabled">Lưu</button>
+                <br>
+        <hr>
+        <br>
+        <button id="SaveAllOptionsBtn" type="button" disabled="disabled">Lưu Toàn bộ</button>
+
+        <script src="options.js"></script>
+    </body>
+</html>

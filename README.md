@@ -13,20 +13,24 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 - Hoàn thành: Đánh dấu "đã đọc" cho các chương đã đọc trong 2 danh sách nêu trên
 	- Hoàn thành: Khi nhấn nút tiện ích.
 	- Hoàn thành: Trong giao diện chương truyện.
-- Hoàn thành: Hiện danh sách chương truyên có đánh dấu "đã đọc" khi ở trang thông tin truyện.
+- Hoàn thành: Hiện danh sách chương truyện có đánh dấu "đã đọc" khi ở trang thông tin truyện.
 - Hoàn thành: Cập nhật đánh dấu "đã đọc" khi nhấn nút Chương Trước/Chương Sau trong giao diện chương truyện.
 - Hoàn thành: Thông báo "đang không đọc truyện" thay cho danh sách chương truyện khi lần đầu đến trang chủ Cứu Truyện.
 - Hoàn thành: Hiện danh sách các truyện đã đọc (đã đọc bất kì chương nào hoặc đã đọc thông tin truyện) khi ở trang chủ Cứu Truyện.
 - Hoàn thành: Hỗ trợ cho cả 2 giao diện của Cứu Truyện:
 	- Hoàn thành: Giao diện classic.
 	- Hoàn thành: Giao diện zen.
+- Hoàn thành: Tùy chọn chức năng cho cặp phím PageUp/PageDown (PgUp/PgDn).
+- Đang phát triển: Xóa truyện khỏi danh sách truyện đã đọc.
+- Đang phát triển: Xóa đánh dấu "đã đọc" của chương truyện đã đọc.
+- Đang phát triển: Nhập/Xuất tệp JSON chứa dữ liệu truyện và chương truyện đã đọc.
 - Hoàn thành: Hỗ trợ cho cả 3 trang của Cứu Truyện.
 	- Hoàn thành: [Trang 1](https://cuutruyen.net/)
 	- Hoàn thành: [Trang 2](https://hetcuutruyen.net/)
 	- Hoàn thành: [Trang 3](https://cuutruyent9sv7.xyz/)
 
 ## Hướng dẫn cài đặt
-**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.3 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
+**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.4 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
 
 **Lưu ý:** Các trình duyệt mạng nhân Chromium như Cốc Cốc, Google Chrome, Microsoft Edge, Yandex, Kiwi, ... đều có cách cài đặt tương tự.
 
@@ -93,6 +97,39 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- **Lưu ý:** Danh sách chương có thể sẽ không đầy đủ ở lần đầu nhấn nút tiện ích. Vui lòng nhấn lại một hay nhiều lần để danh sách được cập nhật đầy đủ.
 	- **Lưu ý:** Ở lần nhấn đầu, các chương cuối của truyện có thể sẽ được hiện ra trong vùng nhìn của danh sách xổ. Ở các lần nhấn sau, chương đang đọc sẽ được hiện ra trong trong vùng nhìn của danh sách xổ.
 	- **Lưu ý:** Thanh xổ có thể không hiện ra khi vào trang chương truyện. Vui lòng nhấn qua lại các nút chọn giao diện một hay nhiều lần, hoặc làm mới trang, để thanh xổ hiện ra.
+
+- Để vào trang tùy chọn của tiện ích mở rộng:
+	- Bước 1: Nhấn chuột phải vào nút tiện ích.
+	- Bước 2: Nhấn chọn "Tùy chọn" trong danh sách hiện ra.
+
+- Để tùy chỉnh chức năng của cặp phím PageUp và PageDown:
+	- Bước 1: Vào trang tùy chọn của tiện ích mở rộng.
+	- Bước 2: Chọn tùy chọn mong muốn trong mục "Chức năng phím PageUp/PageDown".
+	- Bước 3: Nhấn nút "Lưu" hoặc nhấn nút "Lưu Tất cả".
+	- **Lưu ý:** Khi tùy chọn "Cuộn Trang" được chọn, chức năng chuyển chương tới Chương Sau/Chương Trước sẽ được gán cho cặp phím Insert/Delete.
+	- **Lưu ý:** Khi tùy chọn "Cuộn Trang" được chọn và đang sử dụng giao diện classic, cần nhấn chuột trái vào trang chương truyện để có thể sử dụng phím mũi tên lên/xuống, phím Home và phím End.
+
+- Để kích hoạt/hủy bỏ tính năng xóa truyện đã đọc:
+	- Bước 1: Vào trang tùy chọn của tiện ích mở rộng.
+	- Bước 2: Đánh dấu chọn/Bỏ dấu chọn tùy chọn "Kích hoạt" trong mục "Chức năng xóa Truyện".
+	- Bước 3: Nhấn nút "Lưu" hoặc nhấn nút "Lưu Tất cả".
+
+- Để xóa truyện đã đọc:
+	- Bước 1: Kích hoạt tính năng xóa truyện đã đọc.
+	- Bước 2: Đi tới [trang chủ của Cứu Truyện](https://cuutruyen.net/)
+	- Bước 3: Nhấn nút tiện ích.
+	- Bước 4: Nhấn nút "Xóa" của truyện muốn xóa.
+
+- Để kích hoạt/hủy bỏ tính năng xóa đánh dấu "đã đọc" của chương truyện:
+	- Bước 1: Vào trang tùy chọn của tiện ích mở rộng.
+	- Bước 2: Đánh dấu chọn/Bỏ dấu chọn tùy chọn "Kích hoạt" trong mục "Chức năng xóa đánh dấu "Đã đọc" của Chương truyện".
+	- Bước 3: Nhấn nút "Lưu" hoặc nhấn nút "Lưu Tất cả".
+
+- Để xóa đánh dấu "đã đọc" của chương truyện:
+	- Bước 1: Kích hoạt tính năng xóa truyện đánh dấu "đã đọc" của chương truyện.
+	- Bước 2: Đi tới trang thông tin của truyện có chương muốn xóa đánh dấu "đã đọc", ví dụ, [Dr. Stone](https://cuutruyen.net/mangas/16); hoặc đi tới trang chương truyện muốn xóa đánh dấu "đã đọc", ví dụ, [Dr. Stone Chương 1](https://cuutruyen.net/mangas/16/chapters/2082).
+	- Bước 3: Nhấn nút tiện ích.
+	- Bước 4: Nhấn nút "Xóa" của chương truyện muốn xóa đánh dấu "đã đọc".
 
 ## Chia sẻ và phát triển
 - Mã nguồn này có thể được sử dụng không giới hạn.
