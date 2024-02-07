@@ -38,10 +38,10 @@ function watchHrefChanges() {
 			console.log("Save notification from options script, forwarded by background script");
 		
 			if (message === "saveOptions") {
-				console.log("Save notification from options script");
+				// console.log("Save notification from options script");
 				extensionSavedOptions = await chrome.storage.local.get('savedOptions').then((response) => response.savedOptions);
 		
-				console.log(extensionSavedOptions);
+				// console.log(extensionSavedOptions);
 			}
 		});
 
@@ -568,9 +568,27 @@ async function PageUpPageDownOverride(event) {
 	}
 
 	// Assume sortOrder === "descending" (refer to sortOrder in background script).
-	// Swap the + and - if change sortOrder to "ascending".
+	// Swap the + and - if change sortOrder to "ascending";
+	// Or just let the nextChapterOrder and previousChapterOrder handle the order.
 	let nextChapterId = myChapterList[mangaIndex].chapters[chapterIndex - 1];
 	let previousChapterId = myChapterList[mangaIndex].chapters[chapterIndex + 1];
+
+	let nextChapterOrder = myChapterList[mangaIndex].chapterOrders[chapterIndex - 1];;
+	let previousChapterOrder = myChapterList[mangaIndex].chapterOrders[chapterIndex + 1];
+
+	// console.log("Before order check");
+	// console.log({ nextChapterOrder });
+	// console.log({ previousChapterOrder });
+
+	// Check the order of the chapters.
+	// Next chapter always has higher order than previous chapter.
+	if (nextChapterOrder < previousChapterOrder) {
+		[nextChapterId, previousChapterId] = [previousChapterId, nextChapterId];
+		[nextChapterOrder, previousChapterOrder] = [previousChapterOrder, nextChapterOrder];
+	}
+	// console.log("After order check");
+	// console.log({ nextChapterOrder });
+	// console.log({ previousChapterOrder });
 
 	const nextChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${nextChapterId}`;
 	const previousChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${previousChapterId}`;

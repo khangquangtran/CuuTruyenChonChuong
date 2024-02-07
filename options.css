@@ -1,0 +1,22 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+	list-style: none;
+	text-decoration: none;
+}
+
+body {
+	font-family: 'Poppins', sans-serif;
+	width: 100%;
+}
+
+button {
+	cursor: pointer;
+	font-weight: bold;
+	padding: 5px 5px;
+}
+
+label {
+	font-weight: bold;
+}

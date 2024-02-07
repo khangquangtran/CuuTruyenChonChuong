@@ -283,7 +283,7 @@ async function setInitialSavedOptions(reason) {
 				CuonTrang: false
 			},
 			XoaTruyen: false,
-			XoaDaDocTruyen: false
+			XoaDaDocChuong: false
 		};
 		await chrome.storage.local.set({ savedOptions: savedOptions });
 	}
@@ -297,7 +297,7 @@ async function setInitialSavedOptions(reason) {
 				CuonTrang: false
 			},
 			XoaTruyen: false,
-			XoaDaDocTruyen: false
+			XoaDaDocChuong: false
 		};
 		await chrome.storage.local.set({ savedOptions: savedOptions });
 	}

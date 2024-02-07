@@ -1,4 +1,4 @@
-# CuuTruyenChonChuong - Phiên bản 0.4
+# CuuTruyenChonChuong - Phiên bản 0.6
 Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https://cuutruyen.net/)
 
 **Bổ sung:** Lưu các truyện và chương đã đọc
@@ -23,14 +23,14 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 - Hoàn thành: Tùy chọn chức năng cho cặp phím PageUp/PageDown (PgUp/PgDn).
 - Đang phát triển: Xóa truyện khỏi danh sách truyện đã đọc.
 - Đang phát triển: Xóa đánh dấu "đã đọc" của chương truyện đã đọc.
-- Đang phát triển: Nhập/Xuất tệp JSON chứa dữ liệu truyện và chương truyện đã đọc.
+- Hoàn thành: Nhập/Xuất tệp JSON chứa dữ liệu truyện và chương truyện đã đọc.
 - Hoàn thành: Hỗ trợ cho cả 3 trang của Cứu Truyện.
 	- Hoàn thành: [Trang 1](https://cuutruyen.net/)
 	- Hoàn thành: [Trang 2](https://hetcuutruyen.net/)
 	- Hoàn thành: [Trang 3](https://cuutruyent9sv7.xyz/)
 
 ## Hướng dẫn cài đặt
-**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.4 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
+**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.5 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
 
 **Lưu ý:** Các trình duyệt mạng nhân Chromium như Cốc Cốc, Google Chrome, Microsoft Edge, Yandex, Kiwi, ... đều có cách cài đặt tương tự.
 
@@ -127,9 +127,25 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 
 - Để xóa đánh dấu "đã đọc" của chương truyện:
 	- Bước 1: Kích hoạt tính năng xóa truyện đánh dấu "đã đọc" của chương truyện.
-	- Bước 2: Đi tới trang thông tin của truyện có chương muốn xóa đánh dấu "đã đọc", ví dụ, [Dr. Stone](https://cuutruyen.net/mangas/16); hoặc đi tới trang chương truyện muốn xóa đánh dấu "đã đọc", ví dụ, [Dr. Stone Chương 1](https://cuutruyen.net/mangas/16/chapters/2082).
+	- Bước 2:
+		- Đi tới trang thông tin của truyện có chương muốn xóa đánh dấu "đã đọc", ví dụ, [Dr. Stone](https://cuutruyen.net/mangas/16)
+		- Hoặc, đi tới trang chương truyện muốn xóa đánh dấu "đã đọc", ví dụ, [Dr. Stone Chương 1](https://cuutruyen.net/mangas/16/chapters/2082).
 	- Bước 3: Nhấn nút tiện ích.
 	- Bước 4: Nhấn nút "Xóa" của chương truyện muốn xóa đánh dấu "đã đọc".
+
+- Để nhập dữ liệu bằng tệp JSON:
+	- Bước 1: Vào trang tùy chọn của tiện ích mở rộng.
+	- Bước 2: Nhấn nút "Chọn Tệp nhập" trong mục "Nhập/Xuất Dữ liệu bằng Tệp JSON".
+	- Bước 3: Tìm và chọn tệp JSON được lưu trong máy tính.
+	- Bước 4:
+		- Nhấn nút "Nhập Dữ liệu Bổ sung" để bổ sung dữ liệu từ tệp cho tiện ích.
+		- Nhấn nút "Nhập Dữ liệu Thay thế" để sử dụng dữ liệu từ tệp cho tiện ích và loại bỏ dữ liệu tiện ích đang dùng.
+
+- Để xuất dữ liệu bằng tệp JSON:
+	- Bước 1: Vào trang tùy chọn của tiện ích mở rộng.
+	- Bước 2: Nhấn nút "Xuất Dữ liệu" trong mục "Nhập/Xuất Dữ liệu bằng Tệp JSON".
+	- Bước 3: Điền tên tệp và lựa chọn nơi lưu trữ trong máy tính.
+	- **Lưu ý:** Tệp JSON sẽ được tải về với tên mặc dịnh và sẽ được lưu tại vị trí mặc định trong cài đặt của trình duyệt mạng, nếu cài đặt tải về của trình duyệt mạng là tải về mà không cần hỏi vị trí lưu.
 
 ## Chia sẻ và phát triển
 - Mã nguồn này có thể được sử dụng không giới hạn.

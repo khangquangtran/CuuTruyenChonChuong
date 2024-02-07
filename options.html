@@ -1,50 +1,64 @@
 <!DOCTYPE html>
 <html lang="vi">
-    <head>
-        <meta charset="UTF-8">
+	<head>
+		<meta charset="UTF-8">
 		<meta name="viewport">
 		<meta content="width=device-width, initial-scale=1.0">
 		<title title="Cứu Truyện - Chọn Chương - Tùy Chọn"Cứu Truyện - Chọn Chương - Tùy Chọn></title>
 		<link rel="styleSheet" href="popup.css"/>
-    </head>
-    <body>
-        <h1>Cứu Truyện - Chọn Chương - Tùy Chọn</h1>
-        <hr>
-        <br>
-            <h2>Chức năng phím PageUp/PageDown</h2>
-            <br>
-                <input type="radio" id="ChuyenChuongRadio" name="PgUpPgDn" value="ChuyenChuong">
-                <label for="ChuyenChuongRadio">Chuyển Chương</label><br>
-                <br>
-                <input type="radio" id="CuonTrangRadio" name="PgUpPgDn" value="CuonTrang">
-                <label for="CuonTrangRadio">Cuộn Trang (Lưu ý: Dùng phím INS/DEL để tới Chương Sau/Chương Trước)</label><br>
-                <br>
-                <button id="SaveOptionsPgUpPgDnBtn" type="button" disabled="disabled">Lưu</button>
-                <br>
-        <hr>
-        <hr>
-        <br>
-            <h2>Chức năng xóa Truyện</h2>
-            <br>
-                <input type="checkbox" id="XoaTruyenCheckbox" name="XoaTruyen" value="KichHoat">
-                <label for="XoaTruyenCheckbox">Kích hoạt</label><br>
-                <br>
-                <button id="SaveOptionsXoaTruyenBtn" type="button" disabled="disabled">Lưu</button>
-                <br>
-        <hr>
-        <hr>
-        <br>
-            <h2>Chức năng xóa đánh dấu "Đã đọc" của Chương truyện</h2>
-            <br>
-                <input type="checkbox" id="XoaDaDocChuongCheckbox" name="XoaDaDocChuong" value="KichHoat">
-                <label for="XoaDaDocChuongCheckbox">Kích hoạt</label><br>
-                <br>
-                <button id="SaveOptionsXoaDaDocChuongBtn" type="button" disabled="disabled">Lưu</button>
-                <br>
-        <hr>
-        <br>
-        <button id="SaveAllOptionsBtn" type="button" disabled="disabled">Lưu Toàn bộ</button>
+	</head>
+	<body>
+		<h1>Cứu Truyện - Chọn Chương - Tùy Chọn</h1>
+		<hr>
+		<br>
+			<h2>Chức năng phím PageUp/PageDown</h2>
+			<br>
+				<input type="radio" id="ChuyenChuongRadio" name="PgUpPgDn" value="ChuyenChuong">
+				<label for="ChuyenChuongRadio">Chuyển Chương</label><br>
+				<br>
+				<input type="radio" id="CuonTrangRadio" name="PgUpPgDn" value="CuonTrang">
+				<label for="CuonTrangRadio">Cuộn Trang (Lưu ý: Dùng phím INS/DEL để tới Chương Sau/Chương Trước)</label><br>
+				<br>
+				<button id="SaveOptionsPgUpPgDnButton" type="button" disabled="disabled">Lưu</button>
+				<br>
+		<hr>
+		<hr>
+		<br>
+			<h2>Chức năng xóa Truyện</h2>
+			<br>
+				<input type="checkbox" id="XoaTruyenCheckbox" name="XoaTruyen" value="KichHoat">
+				<label for="XoaTruyenCheckbox">Kích hoạt</label><br>
+				<br>
+				<button id="SaveOptionsXoaTruyenButton" type="button" disabled="disabled">Lưu</button>
+				<br>
+		<hr>
+		<hr>
+		<br>
+			<h2>Chức năng xóa đánh dấu "Đã đọc" của Chương truyện</h2>
+			<br>
+				<input type="checkbox" id="XoaDaDocChuongCheckbox" name="XoaDaDocChuong" value="KichHoat">
+				<label for="XoaDaDocChuongCheckbox">Kích hoạt</label><br>
+				<br>
+				<button id="SaveOptionsXoaDaDocChuongButton" type="button" disabled="disabled">Lưu</button>
+				<br>
+		<hr>
+		<br>
+		<button id="SaveAllOptionsButton" type="button" disabled="disabled">Lưu Toàn bộ</button>
+		<hr>
+		<br>
+			<h2>Nhập/Xuất Dữ liệu bằng Tệp JSON</h2>
+			<br>
+				<button id="importAddButton" disabled="disabled">Nhập Dữ liệu Bổ sung</button>
+				<button id="importReplaceButton" disabled="disabled">Nhập Dữ liệu Thay thế</button>
+				<br>
 
-        <script src="options.js"></script>
-    </body>
+				<button type="button" id="importInputButton">Chọn Tệp nhập</button>
+				<input type="file" id="importInput" accept=".json" hidden="hidden" value="Chọn Tệp">
+				<label for="importInput" id="importInputLabel">Chưa có tệp nào được chọn</label>
+				
+				<br><br>
+				<button id="exportButton">Xuất Dữ liệu</button>
+
+		<script src="options.js"></script>
+	</body>
 </html>
