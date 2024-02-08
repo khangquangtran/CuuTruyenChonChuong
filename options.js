@@ -329,9 +329,13 @@ async function importData(addOrReplace) {
 			const jsonData = event.target.result;
 
 			try {
-				const data = JSON.parse(jsonData);
+				let data = JSON.parse(jsonData);
 				// console.log("Imported data:");
 				// console.log({ data });
+
+				await convertChapterListIntoNewStructure(data);
+				// console.log("Imported data with chapter list after new structure conversion");
+				// console.log(data);
 
 				if (addOrReplace === "replace") {
 					await chrome.storage.local.set(data, () => {
@@ -356,7 +360,8 @@ async function importData(addOrReplace) {
 			catch (error) {
 				importInput.value = '';
 				importInputButton.style.background = 'lightgray';
-				importInputLabel.style.color = '';
+				importInputLabel.innerText = "Nhập dữ liệu thất bại";
+				importInputLabel.style.color = 'red';
 
 				importAddButton.disabled = true;
 				importReplaceButton.disabled = true;
@@ -367,6 +372,58 @@ async function importData(addOrReplace) {
 		reader.readAsText(file); // Read the JSON file as text
 	}
 }
+async function convertChapterListIntoNewStructure(importedData) {
+	// console.log("Convert imported chapterList to new structure");
+
+	if (!Array.isArray(importedData.chapterList)) {
+		// console.log("Chapter list already of new structure. Abort conversion...");
+		return;
+	}
+	// console.log("Chapter list still of old structure. Continue conversion...");
+
+	let newStructureChapterList = {};
+
+	if (importedData.chapterList.length === 0) {
+		// Empty imported chapter list
+		// console.log("Empty chapter list");
+		importedData = newStructureChapterList;
+		return;
+	}
+
+	for (let listIndex = 0; listIndex < importedData.chapterList.length; listIndex++) {
+		const mangaDetails = importedData.chapterList[listIndex];
+		const mangaId = mangaDetails.mangaId;
+
+		newStructureChapterList[mangaId] = {
+			mangaName: mangaDetails.mangaName
+		};
+
+		for (let chapterIndex = 0; chapterIndex < mangaDetails.chapterOrders.length; chapterIndex++) {
+			const chapterOrder = mangaDetails.chapterOrders[chapterIndex];
+			const chapterId = mangaDetails.chapters[chapterIndex];
+			const chapterName = mangaDetails.chapterNames[chapterIndex];
+			const chapterNumber = mangaDetails.chapterNumbers[chapterIndex];
+			const read = mangaDetails.readChapters.includes(chapterId) ? true : false;
+
+			newStructureChapterList[mangaId][chapterOrder] = {
+				chapterId: chapterId,
+				chapterName: chapterName,
+				chapterNumber: chapterNumber,
+				read: read
+			}
+		}
+		// console.log({ aMangaName: newStructureChapterList[mangaId].mangaName });
+		// console.log({ aChapter: newStructureChapterList[mangaId][0] });
+	}
+
+	// console.log({ newStructureChapterList });
+
+	importedData.chapterList = newStructureChapterList;
+	// await chrome.storage.local.set({ chapterList: newStructureChapterList });
+
+	// console.log("Finish converting chapterList to new structure");
+}
+
 
 async function handleDataMerge(data) {
 	// console.log("Merge/Update imported data with existing storage.local data");
@@ -414,10 +471,10 @@ async function handleChapterListData(existingData, newData) {
 	// console.log("Before merge chapter list");
 	// console.log({ existingChapterList });
 
-	if (!newData.length) {
+	if (!Object.keys(newData).length) {
 		// console.log("Empty imported chapter list");
 	}
-	else if (!existingData.length && newData.length) {
+	else if (!Object.keys(existingData).length && Object.keys(newData).length) {
 		// Empty chapter list
 		// console.log("Empty chapter list");
 
@@ -428,24 +485,18 @@ async function handleChapterListData(existingData, newData) {
 	}
 	else 
 	{
-		for (let i = 0; i < newData.length; i++) {
-			const mangaIndex = existingData.findIndex((item) => item.mangaId === newData[i].mangaId);
-
-			if (mangaIndex === -1) {
-				// console.log("Non-empty chapter list. Failed to find manga id in storage");
-
-				existingData.push(newData[i]);
-
+		for (let mangaId in newData) {
+			if (existingData.hasOwnProperty(mangaId)) {
+				for (let chapterOrder in existingData[mangaId]) {
+					// If the read status from newData is true, use it.
+					// If not, keep the read status from existingData
+					existingData[mangaId][chapterOrder].read = newData[mangaId][chapterOrder].read ? newData[mangaId][chapterOrder].read : existingData[mangaId][chapterOrder].read;
+				}
 				await chrome.storage.local.set({ chapterList: existingData });
-				// console.log(existingData);
 			}
 			else {
-				// console.log("Non-empty chapter list. Found manga id in storage. Append read chapter list");
-
-				existingData[mangaIndex].readChapters = [...new Set([...existingData[mangaIndex].readChapters, ...newData[i].readChapters])];
-
+				existingData[mangaId] = newData[mangaId];
 				await chrome.storage.local.set({ chapterList: existingData });
-				// console.log(existingData);
 			}
 		}
 	}

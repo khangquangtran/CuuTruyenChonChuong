@@ -1,4 +1,4 @@
-# CuuTruyenChonChuong - Phiên bản 0.6
+# CuuTruyenChonChuong - Phiên bản 0.7
 Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https://cuutruyen.net/)
 
 **Bổ sung:** Lưu các truyện và chương đã đọc
@@ -21,8 +21,8 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- Hoàn thành: Giao diện classic.
 	- Hoàn thành: Giao diện zen.
 - Hoàn thành: Tùy chọn chức năng cho cặp phím PageUp/PageDown (PgUp/PgDn).
-- Đang phát triển: Xóa truyện khỏi danh sách truyện đã đọc.
-- Đang phát triển: Xóa đánh dấu "đã đọc" của chương truyện đã đọc.
+- Hoàn thành: Xóa truyện khỏi danh sách truyện đã đọc.
+- Hoàn thành: Xóa đánh dấu "đã đọc" của chương truyện đã đọc.
 - Hoàn thành: Nhập/Xuất tệp JSON chứa dữ liệu truyện và chương truyện đã đọc.
 - Hoàn thành: Hỗ trợ cho cả 3 trang của Cứu Truyện.
 	- Hoàn thành: [Trang 1](https://cuutruyen.net/)
@@ -30,7 +30,7 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- Hoàn thành: [Trang 3](https://cuutruyent9sv7.xyz/)
 
 ## Hướng dẫn cài đặt
-**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.5 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
+**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.6 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
 
 **Lưu ý:** Các trình duyệt mạng nhân Chromium như Cốc Cốc, Google Chrome, Microsoft Edge, Yandex, Kiwi, ... đều có cách cài đặt tương tự.
 

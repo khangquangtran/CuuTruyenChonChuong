@@ -4,6 +4,7 @@ const hostnames = [
 	"cuutruyent9sv7.xyz"
 ];
 
+// With new structure for chapterList, no longer need this variable. Will remove later.
 // "ascending" => Chương 1, Chương 2, Chương 3, ... Chương Cuối
 // "descending" => Chương Cuối, ..., Chương 3, Chương 2, Chương 1
 const sortOrder = "descending";
@@ -16,7 +17,7 @@ chrome.runtime.onInstalled.addListener(async function (details) {
 	}
 
 	buildInitialChapterList(details.reason);
-	setInitialSavedOptions(details.reason)
+	setInitialSavedOptions(details.reason);
 
 	const chapterData = {
 		cuutruyenHostname: "",
@@ -84,7 +85,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
 					}
 					else { // Build manga list: No need to do => Just use the chapter list
 						// console.log("Manga list");
-						if (myChapterList.length === 0)
+						if (Object.keys(myChapterList).length === 0)
 						{
 							// console.log("Empty chapter list");
 							const chapterData = {
@@ -132,7 +133,7 @@ chrome.runtime.onConnect.addListener(async function (port) {
 			}
 			const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-			if (myChapterList.length !== 0 && hostname) {
+			if (Object.keys(myChapterList).length !== 0 && hostname) {
 				// console.log("At Cứu Truyện sites");
 				const chapterData = {
 					cuutruyenHostname: hostname,
@@ -175,7 +176,7 @@ chrome.runtime.onMessage.addListener(async function({message}, sender, sendRespo
 
 		const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-		if (myChapterList.length !== 0 && hostname) {
+		if (Object.keys(myChapterList).length !== 0 && hostname) {
 			// console.log("At Cứu Truyện sites");
 			const chapterData = {
 				cuutruyenHostname: hostname,
@@ -247,20 +248,28 @@ async function buildInitialChapterList(reason) {
 
 	if (reason === "update") {
 	// Use existing chapter list, if existing; otherwise, create empty chapter list
-		const existingChapterList = await chrome.storage.local.get('chapterList');
+		const existingChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 		if (existingChapterList) {
 			// console.log("Found existing chapter list at updating");
+
+			// TODO: Convert chapterList into new format
+			try {
+				await convertChapterListToNewStructure(existingChapterList);
+			}
+			catch (error) {
+				console.error("Error in converting chapterList to new structure:", error);
+			}
 			return; // There exists a chapterList => no need to create a new one.
 		}
 
-		const myChapterList = [];
+		const myChapterList = {};
 		await chrome.storage.local.set({ chapterList: myChapterList });
 	}
 
 	if (reason === "install") {
 	// Create empty chapter list
 		// console.log("Create empty chapter list at installation");
-		const myChapterList = [];
+		const myChapterList = {};
 		await chrome.storage.local.set({ chapterList: myChapterList });
 	}
 }
@@ -303,6 +312,57 @@ async function setInitialSavedOptions(reason) {
 	}
 }
 
+async function convertChapterListToNewStructure(existingChapterList) {
+	// console.log("Convert chapterList to new structure");
+
+	if (!Array.isArray(existingChapterList)) {
+		// console.log("Chapter list already of new structure. Abort conversion...");
+		return;
+	}
+	// console.log("Chapter list still of old structure. Continue conversion...");
+	
+	let newStructureChapterList = {};
+
+	if (existingChapterList.length === 0) {
+		// Empty chapter list. Actually checked during extension installation/update.
+		// console.log("Empty chapter list");
+		existingChapterList = newStructureChapterList;
+		return;
+	}
+
+	for (let listIndex = 0; listIndex < existingChapterList.length; listIndex++) {
+		const mangaDetails = existingChapterList[listIndex];
+		const mangaId = mangaDetails.mangaId;
+
+		newStructureChapterList[mangaId] = {
+			mangaName: mangaDetails.mangaName
+		};
+
+		for (let chapterIndex = 0; chapterIndex < mangaDetails.chapterOrders.length; chapterIndex++) {
+			const chapterOrder = mangaDetails.chapterOrders[chapterIndex];
+			const chapterId = mangaDetails.chapters[chapterIndex];
+			const chapterName = mangaDetails.chapterNames[chapterIndex];
+			const chapterNumber = mangaDetails.chapterNumbers[chapterIndex];
+			const read = mangaDetails.readChapters.includes(chapterId) ? true : false;
+
+			newStructureChapterList[mangaId][chapterOrder] = {
+				chapterId: chapterId,
+				chapterName: chapterName,
+				chapterNumber: chapterNumber,
+				read: read
+			}
+		}
+		// console.log({ aMangaName: newStructureChapterList[mangaId].mangaName });
+		// console.log({ aChapter: newStructureChapterList[mangaId][0] });
+	}
+
+	// console.log({ newStructureChapterList });
+
+	await chrome.storage.local.set({ chapterList: newStructureChapterList });
+
+	// console.log("Finish converting chapterList to new structure");
+}
+
 async function buildChapterList(chapterData) {
 	const isFromLastChapter = false;
 	await fetchChapters(chapterData, isFromLastChapter);
@@ -325,13 +385,27 @@ async function buildChapterListFromLastChapter(chapterData) {
 
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
+	if (myChapterList.hasOwnProperty(chapterData.mangaId)) {
+		const numberOfKeys = Object.keys(myChapterList[chapterData.mangaId]).length;
+		const storedChapterCount = numberOfKeys - 1; //Taking advantage of automatic sort of Object numeric property
+		const keysArray = Object.keys(myChapterList[chapterData.mangaId]);
+		const lastChapterOrder = parseInt(keysArray[storedChapterCount - 1]);
 
-	if (mangaIndex !== -1
-		&& chaptersCount === myChapterList[mangaIndex].chapters.length 
-		&& newestChapterId === myChapterList[mangaIndex].chapters[0]) {
-		// console.log("Stop fetching chapter. Already built");
-		return;
+		// console.log({ numberOfKeys });
+		// console.log({ storedChapterCount });
+		// console.log({ lastChapterOrder });
+		if (chaptersCount === storedChapterCount) {
+			const highestChapterId = myChapterList[chapterData.mangaId][lastChapterOrder].chapterId;
+			// Number of keys = N
+			// Number of chapters stored = N-1
+			// Index of key mangaName = N-1
+			// Index of key highest chapterOrder = N-2
+
+			if (newestChapterId === highestChapterId) {
+				// console.log("Stop fetching chapter. Already built");
+				return;
+			}
+		}
 	}
 
 	const currentChapterData = {
@@ -415,6 +489,7 @@ async function fetchCurrentChapter(chapterData, isFromLastChapter) {
 	// console.log(apiResponse);
 	// console.log(data);
 
+	const mangaId = data.manga.id;
 	const mangaName = data.manga.name;
 	const chapterName = data.name;
 	const chapterNumber = data.number;
@@ -423,84 +498,73 @@ async function fetchCurrentChapter(chapterData, isFromLastChapter) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 	// console.log(myChapterList);
 
-	if (!myChapterList.length) {
+	if (!Object.keys(myChapterList).length) {
 		// Empty chapter list
 		// console.log("Empty chapter list");
-		myChapterList.push({ 
-			mangaId: chapterData.mangaId,
-			mangaName: mangaName,
-			chapters: [ chapterData.chapterId ],
-			readChapters: [ isFromLastChapter ? undefined : chapterData.chapterId ],
-			chapterNames: [ chapterName !== null ? chapterName : "" ],
-			chapterNumbers: [ chapterNumber ],
-			chapterOrders: [ chapterOrder ]
-		})
+
+		myChapterList[mangaId] = {
+			mangaName: mangaName
+		}
+		myChapterList[mangaId][chapterOrder] = {
+			chapterId: chapterData.chapterId,
+			chapterName: chapterName !== null ? chapterName : "",
+			chapterNumber: chapterNumber,
+			read: isFromLastChapter ? false : true
+		}
+
 		await chrome.storage.local.set({ chapterList: myChapterList });
 		// console.log(myChapterList);
 		return;
 	}
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
-
-	// console.log("MangaIndex: " + mangaIndex);
-	if (mangaIndex === -1) {
+	if (!myChapterList.hasOwnProperty(mangaId)) {
 		// console.log("Non-empty chapter list. Failed to find manga id in storage");
-		myChapterList.push({ 
-			mangaId: chapterData.mangaId,
-			mangaName: mangaName,
-			chapters: [ chapterData.chapterId ],
-			readChapters: [ isFromLastChapter ? "" : chapterData.chapterId ],
-			chapterNames: [ chapterName !== null ? chapterName : "" ],
-			chapterNumbers: [ chapterNumber ],
-			chapterOrders: [ chapterOrder ]
-		})
+
+		myChapterList[mangaId] = {
+			mangaName: mangaName
+		}
+		myChapterList[mangaId][chapterOrder] = {
+			chapterId: chapterData.chapterId,
+			chapterName: chapterName !== null ? chapterName : "",
+			chapterNumber: chapterNumber,
+			read: isFromLastChapter ? false : true
+		}
+
 		await chrome.storage.local.set({ chapterList: myChapterList });
 		// console.log(myChapterList);
 		return;
 	}
 
-	const chapterIndex = myChapterList[mangaIndex].chapters.findIndex((item) => item === chapterData.chapterId);
+	if (!myChapterList[mangaId].hasOwnProperty(chapterOrder)
+		|| 
+		(myChapterList[mangaId][chapterOrder].chapterId !== chapterData.chapterId
+		|| myChapterList[mangaId][chapterOrder].chapterName !== chapterName
+		|| myChapterList[mangaId][chapterOrder].chapterNumber !== chapterNumber)
+		) {
+		// console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter in storage.", myChapterList[mangaId].hasOwnProperty(chapterOrder));
+		// console.log("Or: Non-empty chapter list. Found manga id in the storage. A change in chapter id");
 
-	// console.log("ChapterIndex: " + chapterIndex);
-	if (chapterIndex === -1) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter id in storage.");
-		myChapterList[mangaIndex].chapters.push(chapterData.chapterId);
-		myChapterList[mangaIndex].readChapters.push((isFromLastChapter ? "" : chapterData.chapterId));
-		myChapterList[mangaIndex].chapterNames.push(chapterName !== null ? chapterName : "");
-		myChapterList[mangaIndex].chapterNumbers.push(chapterNumber);
-		myChapterList[mangaIndex].chapterOrders.push(chapterOrder);
+		myChapterList[mangaId][chapterOrder] = {
+			chapterId: chapterData.chapterId,
+			chapterName: chapterName !== null ? chapterName : "",
+			chapterNumber: chapterNumber,
+			read: isFromLastChapter ? false : true
+		}
+
 		await chrome.storage.local.set({ chapterList: myChapterList });
 		// console.log(myChapterList);
 		return;
 	}
 
-	const readChapterIndex = myChapterList[mangaIndex].readChapters.findIndex((item) => item === chapterData.chapterId);
+	if (myChapterList[mangaId].hasOwnProperty(chapterOrder)
+		&& myChapterList[mangaId][chapterOrder].read === false) {
+		// Update read status
+		// console.log("Update read status");
+		myChapterList[mangaId][chapterOrder].read = true;
 
-	// console.log("ReadChapterIndex: " + readChapterIndex);
-	// console.log(isFromLastChapter);
-	if (readChapterIndex === -1) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Found chapter id in storage. Failed to find read chapter id in storage");
-		myChapterList[mangaIndex].readChapters.push((isFromLastChapter ? "" : chapterData.chapterId));
 		await chrome.storage.local.set({ chapterList: myChapterList });
 		// console.log(myChapterList);
-		// return;
-	}
-
-	// && !Array.isArray(myChapterList.chapterOrders)
-	if (!("chapterOrders" in myChapterList[mangaIndex])) {
-		// console.log("Non-existent chapter order list!!")
-		myChapterList[mangaIndex].chapterOrders = new Array(N).fill(-1);
-	}
-	const chapterOrderIndex = myChapterList[mangaIndex].chapterOrders.findIndex((item) => item === chapterOrder);
-
-	// console.log("ChapterOrderIndex: " + chapterOrderIndex);
-	if (chapterOrderIndex === -1) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Found chapter id in storage. Failed to find chapter order in storage");
-		myChapterList[mangaIndex].chapterOrders[chapterIndex] = chapterOrder;
-		// myChapterList[mangaIndex].chapterOrders.splice(chapterIndex, 0, chapterOrder);
-		await chrome.storage.local.set({ chapterList: myChapterList });
-		// console.log(myChapterList);
-		// return;
+		return;
 	}
 }
 
@@ -521,17 +585,36 @@ async function fetchNextChapter(chapterData) {
 	const mangaApiResponse = await fetch(cuutruyenApiMangaUrl + chapterData.mangaId.toString()).then((response) => response.json());
 	const mangaData = mangaApiResponse.data;
 
+	const mangaId = mangaData.id; // mangaId === chapterData.mangaId
+	const chaptersCount = mangaData.chapters_count;
 	const newestChapterId = mangaData.newest_chapter_id;
 
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
-
 	// Attempt to ealry stop the fetching of next chapter
-	// if (newestChapterId === myChapterList[mangaIndex].chapters[0]) {
-	//     // console.log("Stop fetching next chapter. Already built");
-	//     return;
-	// }
+	if (myChapterList.hasOwnProperty(mangaId)) {
+		const numberOfKeys = Object.keys(myChapterList[mangaId]).length;
+		const storedChapterCount = numberOfKeys - 1; //Taking advantage of automatic sort of Object numeric property
+
+		const keysArray = Object.keys(myChapterList[chapterData.mangaId]);
+		const lastChapterOrder = parseInt(keysArray[storedChapterCount - 1]);
+
+		// console.log({ numberOfKeys });
+		// console.log({ storedChapterCount });
+		// console.log({ lastChapterOrder });
+		if (chaptersCount === storedChapterCount) {
+			const highestChapterId = myChapterList[mangaId][lastChapterOrder].chapterId;
+			// Number of keys = N
+			// Number of chapters stored = N-1
+			// Index of key mangaName = N-1
+			// Index of key highest chapterOrder = N-2
+
+			if (newestChapterId === highestChapterId) {
+				// console.log("Stop fetching chapter. Already built");
+				return;
+			}
+		}
+	}
 
 	const cuutruyenApiChapterUrl = "https://" + chapterData.cuutruyenHostname + "/api/v2/chapters/";
 	
@@ -550,7 +633,7 @@ async function fetchNextChapter(chapterData) {
 	const nextChapterId = data.next_chapter_id;
 	const nextChapterName = data.next_chapter_name;
 	const nextChapterNumber = data.next_chapter_number;
-	const chapterOrder = data.order;
+	const nextChapterOrder = data.order + 1;
 
 	if (nextChapterId === null)
 	{
@@ -560,45 +643,63 @@ async function fetchNextChapter(chapterData) {
 
 	// console.log(myChapterList);
 
-	// console.log("Next Chapter. MangaIndex: " + mangaIndex);
-	if (mangaIndex === -1) {
+	// console.log("Next Chapter. MangaId: " + mangaId);
+	if (!myChapterList.hasOwnProperty(mangaId)) {
 		// console.log("Non-empty chapter list. Failed to find manga id in storage");
-		myChapterList.push({ 
-			mangaId: chapterData.mangaId,
-			mangaName: mangaName,
-			chapters: [ nextChapterId ],
-			chapterNames: [ nextChapterName !== null ? nextChapterName : "" ],
-			chapterNumbers: [ nextChapterNumber ],
-			chapterOrders: [ chapterOrder + 1 ]
-		})
-		await chrome.storage.local.set({ chapterList: myChapterList });
-		return;
-	}
 
-	const chapterIndex = myChapterList[mangaIndex].chapters.findIndex((item) => item === nextChapterId);
-	// console.log("Next Chapter. ChapterIndex: " + chapterIndex);
-	if (chapterIndex === -1) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter id in storage.");
-		myChapterList[mangaIndex].chapters.unshift(nextChapterId);
-		myChapterList[mangaIndex].chapterNames.unshift(nextChapterName !== null ? nextChapterName : "");
-		myChapterList[mangaIndex].chapterNumbers.unshift(nextChapterNumber);
-		myChapterList[mangaIndex].chapterOrders.unshift(chapterOrder + 1);
-		await chrome.storage.local.set({ chapterList: myChapterList });
-	}
+		myChapterList[mangaId] = {
+			mangaName: mangaName
+		}
+		myChapterList[mangaId][nextChapterOrder] = {
+			chapterId: nextChapterId,
+			chapterName: nextChapterName !== null ? nextChapterName : "",
+			chapterNumber: nextChapterNumber,
+			read: false
+		}
 
-	if (!("chapterOrders" in myChapterList[mangaIndex])) {
-		// console.log("Non-existent chapter order list!!");
-		myChapterList[mangaIndex].chapterOrders = new Array(N).fill(-1);
-	}
-	const chapterOrderIndex = myChapterList[mangaIndex].chapterOrders.findIndex((item) => item === chapterOrder+1);
-
-	// console.log("ChapterOrderIndex: " + chapterOrderIndex);
-	if (chapterOrderIndex === -1 ) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Found chapter id in storage. Failed to find chapter order in storage");
-		myChapterList[mangaIndex].chapterOrders[chapterIndex] = chapterOrder + 1;
-		// myChapterList[mangaIndex].chapterOrders.splice(chapterIndex, 0, chapterOrder+1);
 		await chrome.storage.local.set({ chapterList: myChapterList });
 		// console.log(myChapterList);
+		// return;
+	}
+
+	if (!myChapterList[mangaId].hasOwnProperty(nextChapterOrder)
+		|| myChapterList[mangaId][nextChapterOrder].chapterId !== nextChapterId) {
+		// console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter in storage.", myChapterList[mangaId].hasOwnProperty(nextChapterOrder));
+
+		myChapterList[mangaId][nextChapterOrder] = {
+			chapterId: nextChapterId,
+			chapterName: nextChapterName !== null ? nextChapterName : "",
+			chapterNumber: nextChapterNumber,
+			read: false
+		}
+
+		await chrome.storage.local.set({ chapterList: myChapterList });
+		// console.log(myChapterList);
+		// return;
+	}
+
+	if (myChapterList[mangaId].hasOwnProperty(nextChapterOrder)
+		&& 
+		(myChapterList[mangaId][nextChapterOrder].chapterId !== nextChapterId
+		|| myChapterList[mangaId][nextChapterOrder].chapterName !== nextChapterName
+		|| myChapterList[mangaId][nextChapterOrder].chapterNumber !== nextChapterNumber)
+		) {
+		// console.log("Non-empty chapter list. Found manga id in the storage. A change in chapter");
+
+		let readStatus = false;
+		if (myChapterList[mangaId][nextChapterOrder].chapterNumber === nextChapterNumber) {
+			const readStatus = myChapterList[mangaId][nextChapterOrder].read;
+		}
+		myChapterList[mangaId][nextChapterOrder] = {
+			chapterId: nextChapterId,
+			chapterName: nextChapterName !== null ? nextChapterName : "",
+			chapterNumber: nextChapterNumber,
+			read: readStatus
+		}
+
+		await chrome.storage.local.set({ chapterList: myChapterList });
+		// console.log(myChapterList);
+		// return;
 	}
 
 	const nextChapterData = {
@@ -633,12 +734,12 @@ async function fetchPreviousChapter(chapterData) {
 	// console.log(apiResponse);
 	// console.log(data);
 
-	// const mangaId = data.manga.id;
+	const mangaId = data.manga.id; // mangaId === chapterData.chapterId
 	const mangaName = data.manga.name;
 	const previousChapterId = data.previous_chapter_id;
 	const previousChapterName = data.previous_chapter_name;
 	const previousChapterNumber = data.previous_chapter_number;
-	const chapterOrder = data.order;
+	const previousChapterOrder = data.order - 1;
 
 	if (previousChapterId === null)
 	{
@@ -649,46 +750,63 @@ async function fetchPreviousChapter(chapterData) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 	// console.log(myChapterList);
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId)
-
-	// console.log("Previous Chapter. MangaIndex: " + mangaIndex);
-	if (mangaIndex === -1) {
+	// console.log("Previous Chapter. MangaId: " + mangaId);
+	if (!myChapterList.hasOwnProperty(mangaId)) {
 		// console.log("Non-empty chapter list. Failed to find manga id in storage");
-		myChapterList.push({ 
-			mangaId: chapterData.mangaId,
-			mangaName: mangaName,
-			chapters: [ previousChapterId ],
-			chapterNames: [ previousChapterName !== null ? previousChapterName : "" ],
-			chapterNumbers: [ previousChapterNumber ],
-			chapterOrders: [ chapterOrder - 1 ]
-		})
-		await chrome.storage.local.set({ chapterList: myChapterList });
-	}
 
-	const chapterIndex = myChapterList[mangaIndex].chapters.findIndex((item) => item === previousChapterId);
-	// console.log("Previous Chapter. ChapterIndex: " + chapterIndex);
-	if (chapterIndex === -1) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter id in storage.");
-		myChapterList[mangaIndex].chapters.push(previousChapterId);
-		myChapterList[mangaIndex].chapterNames.push(previousChapterName !== null ? previousChapterName : "");
-		myChapterList[mangaIndex].chapterNumbers.push(previousChapterNumber);
-		myChapterList[mangaIndex].chapterOrders.push(chapterOrder - 1);
-		await chrome.storage.local.set({ chapterList: myChapterList });
-	}
+		myChapterList[mangaId] = {
+			mangaName: mangaName
+		}
+		myChapterList[mangaId][previousChapterOrder] = {
+			chapterId: previousChapterId,
+			chapterName: previousChapterName !== null ? previousChapterName : "",
+			chapterNumber: previousChapterNumber,
+			read: false
+		}
 
-	if (!("chapterOrders" in myChapterList[mangaIndex])) {
-		// console.log("Non-existent chapter order list!!");
-		myChapterList[mangaIndex].chapterOrders = new Array(N).fill(-1);
-	}
-	const chapterOrderIndex = myChapterList[mangaIndex].chapterOrders.findIndex((item) => item === chapterOrder-1);
-
-	// console.log("ChapterOrderIndex: " + chapterOrderIndex);
-	if (chapterOrderIndex === -1 ) {
-		// console.log("Non-empty chapter list. Found manga id in storage. Found chapter id in storage. Failed to find chapter order in storage");
-		myChapterList[mangaIndex].chapterOrders[chapterIndex] = chapterOrder - 1;
-		// myChapterList[mangaIndex].chapterOrders.splice(chapterIndex, 0, chapterOrder-1);
 		await chrome.storage.local.set({ chapterList: myChapterList });
 		// console.log(myChapterList);
+		// return;
+	}
+
+	if (!myChapterList[mangaId].hasOwnProperty(previousChapterOrder)
+		) {
+		// console.log("Non-empty chapter list. Found manga id in storage. Failed to find chapter in storage.", myChapterList[mangaId].hasOwnProperty(previousChapterOrder));
+
+		myChapterList[mangaId][previousChapterOrder] = {
+			chapterId: previousChapterId,
+			chapterName: previousChapterName !== null ? previousChapterName : "",
+			chapterNumber: previousChapterNumber,
+			read: false
+		}
+
+		await chrome.storage.local.set({ chapterList: myChapterList });
+		// console.log(myChapterList);
+		// return;
+	}
+	
+	if (myChapterList[mangaId].hasOwnProperty(previousChapterOrder)
+		&& 
+		(myChapterList[mangaId][previousChapterOrder].chapterId !== previousChapterId
+		|| myChapterList[mangaId][previousChapterOrder].chapterName !== previousChapterName
+		|| myChapterList[mangaId][previousChapterOrder].chapterNumber !== previousChapterNumber)
+		) {
+		// console.log("Non-empty chapter list. Found manga id in the storage. A change in chapter");
+
+		let readStatus = false;
+		if (myChapterList[mangaId][previousChapterOrder].chapterNumber === previousChapterNumber) {
+			const readStatus = myChapterList[mangaId][previousChapterOrder].read;
+		}
+		myChapterList[mangaId][previousChapterOrder] = {
+			chapterId: previousChapterId,
+			chapterName: previousChapterName !== null ? previousChapterName : "",
+			chapterNumber: previousChapterNumber,
+			read: readStatus
+		}
+
+		await chrome.storage.local.set({ chapterList: myChapterList });
+		// console.log(myChapterList);
+		// return;
 	}
 
 	const previousChapterData = {
@@ -700,60 +818,61 @@ async function fetchPreviousChapter(chapterData) {
 	await fetchPreviousChapter(previousChapterData);
 }
 
+// With new structure for chapterList, no longer need this function. Will remove later.
 async function sortAndStoreChaperList(chapterData, ascOrDes) {
-	// const activeChapterData = await chrome.storage.local.get('activeChapterData').then((response) => response.activeChapterData);
+	// // const activeChapterData = await chrome.storage.local.get('activeChapterData').then((response) => response.activeChapterData);
 
-	// if (activeChapterData.cuutruyenHostname === ""
-	// 	&& activeChapterData.mangaId === "" 
-	// 	&& activeChapterData.chapterId === "")
-	// {
-	// 	return;
+	// // if (activeChapterData.cuutruyenHostname === ""
+	// // 	&& activeChapterData.mangaId === "" 
+	// // 	&& activeChapterData.chapterId === "")
+	// // {
+	// // 	return;
+	// // }
+
+	// let myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+	// // console.log(myChapterList);
+
+	// const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId);
+
+	// if (mangaIndex === -1) {
+	// 	return false;
+	// }
+	// let chapterOrderList = myChapterList[mangaIndex].chapterOrders;
+	// const chapterIdList = myChapterList[mangaIndex].chapters;
+	// const chapterNameList = myChapterList[mangaIndex].chapterNames;
+	// const chapterNumberList = myChapterList[mangaIndex].chapterNumbers;
+	// const readChapterList = myChapterList[mangaIndex].readChapters;
+
+	// // Create an array of indices
+	// let indices = chapterOrderList.map((element, index) => index);
+
+	// if (ascOrDes === "ascending") {
+	// 	// Find the maximum element in the chapterIdList
+	// 	const minElement = Math.min(...chapterIdList);
+
+	// 	// Sort the indices based on the values in chapterOrderList
+	// 	indices.sort((index_a, index_b) => chapterOrderList[index_a] - chapterOrderList[index_b]);
+	// 	readChapterList.sort((readChapter_a, readChapter_b) => readChapter_a - readChapter_b);
+	// }
+	// else if (ascOrDes === "descending") {
+	// 	// Sort the indices based on the values in chapterOrderList
+	// 	indices.sort((index_a, index_b) => chapterOrderList[index_b] - chapterOrderList[index_a]);
+	// 	readChapterList.sort((readChapter_a, readChapter_b) => readChapter_b - readChapter_a);
 	// }
 
-	let myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
-	// console.log(myChapterList);
+	// // Rearrange elements in all arrays based on the sorted indices
+	// const sortChapterOrderList = indices.map(index => chapterOrderList[index]);
+	// const sortChapterIdList = indices.map(index => chapterIdList[index]);
+	// const sortChapterNameList = indices.map(index => chapterNameList[index]);
+	// const sortChapterNumberList = indices.map(index => chapterNumberList[index]);
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === chapterData.mangaId);
+	// myChapterList[mangaIndex].chapterOrders = sortChapterOrderList;
+	// myChapterList[mangaIndex].chapters = sortChapterIdList;
+	// myChapterList[mangaIndex].chapterNames = sortChapterNameList;
+	// myChapterList[mangaIndex].chapterNumbers = sortChapterNumberList;
+	// myChapterList[mangaIndex].readChapters = readChapterList;
 
-	if (mangaIndex === -1) {
-		return false;
-	}
-	let chapterOrderList = myChapterList[mangaIndex].chapterOrders;
-	const chapterIdList = myChapterList[mangaIndex].chapters;
-	const chapterNameList = myChapterList[mangaIndex].chapterNames;
-	const chapterNumberList = myChapterList[mangaIndex].chapterNumbers;
-	const readChapterList = myChapterList[mangaIndex].readChapters;
-
-	// Create an array of indices
-	let indices = chapterOrderList.map((element, index) => index);
-
-	if (ascOrDes === "ascending") {
-		// Find the maximum element in the chapterIdList
-		const minElement = Math.min(...chapterIdList);
-
-		// Sort the indices based on the values in chapterOrderList
-		indices.sort((index_a, index_b) => chapterOrderList[index_a] - chapterOrderList[index_b]);
-		readChapterList.sort((readChapter_a, readChapter_b) => readChapter_a - readChapter_b);
-	}
-	else if (ascOrDes === "descending") {
-		// Sort the indices based on the values in chapterOrderList
-		indices.sort((index_a, index_b) => chapterOrderList[index_b] - chapterOrderList[index_a]);
-		readChapterList.sort((readChapter_a, readChapter_b) => readChapter_b - readChapter_a);
-	}
-
-	// Rearrange elements in all arrays based on the sorted indices
-	const sortChapterOrderList = indices.map(index => chapterOrderList[index]);
-	const sortChapterIdList = indices.map(index => chapterIdList[index]);
-	const sortChapterNameList = indices.map(index => chapterNameList[index]);
-	const sortChapterNumberList = indices.map(index => chapterNumberList[index]);
-
-	myChapterList[mangaIndex].chapterOrders = sortChapterOrderList;
-	myChapterList[mangaIndex].chapters = sortChapterIdList;
-	myChapterList[mangaIndex].chapterNames = sortChapterNameList;
-	myChapterList[mangaIndex].chapterNumbers = sortChapterNumberList;
-	myChapterList[mangaIndex].readChapters = readChapterList;
-
-	// console.log(myChapterList[mangaIndex]);
-	await chrome.storage.local.set({ chapterList: myChapterList });
+	// // console.log(myChapterList[mangaIndex]);
+	// await chrome.storage.local.set({ chapterList: myChapterList });
 	return true;
 }

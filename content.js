@@ -34,17 +34,6 @@ function watchHrefChanges() {
 			top: window.getComputedStyle(document.body).top,
 		};
 
-		chrome.runtime.onMessage.addListener(async function({message}, sender, sendResponse) {
-			console.log("Save notification from options script, forwarded by background script");
-		
-			if (message === "saveOptions") {
-				// console.log("Save notification from options script");
-				extensionSavedOptions = await chrome.storage.local.get('savedOptions').then((response) => response.savedOptions);
-		
-				// console.log(extensionSavedOptions);
-			}
-		});
-
 		// watchUiChanges();
 		if (currentBodyStyle.position === 'static' 
 			&& currentBodyStyle.top === 'auto') {
@@ -388,13 +377,19 @@ function constructChapterSelectList(navigationButtonGroup, windowLocation, chapt
 		return `${navigationButtonGroup.innerHTML}`;
 	}
 
-	const mangaIndex = chapterList.findIndex((item) => item.mangaId === manga)
-
-	if (mangaIndex === -1) {
+	if (!chapterList.hasOwnProperty(manga)) {
 		// console.log("Not found mangaId", manga);
 		return `${navigationButtonGroup.innerHTML}`;
 	}
-	const chapterIndex = chapterList[mangaIndex].chapters.findIndex((item) => item === chapter);
+
+	let chapterOrder = Object.keys(chapterList[manga]).find(key => chapterList[manga][key].chapterId === chapter);
+
+	if (!chapterOrder) {
+		// console.log("Chapter not found", chapter);
+		return `${navigationButtonGroup.innerHTML}`;
+	}
+	chapterOrder = parseInt(chapterOrder);
+
 	if (headingOrTrailing === "Bottom") 
 	{
 		// html += '<div class="flex items-stretch flex-col gap-2">';
@@ -402,7 +397,7 @@ function constructChapterSelectList(navigationButtonGroup, windowLocation, chapt
 	html += `
 		<select id="ChonChuongSelect${headingOrTrailing}" onChange="window.location.href=this.value" autofocus>
 			<option value="https://${currentHostname}/mangas/${manga}/chapters/${chapter}" id="readselect" selected="selected">
-				Chương ${chapterList[mangaIndex].chapterNumbers[chapterIndex]} (Đã đọc) : ${chapterList[mangaIndex].chapterNames[chapterIndex]}
+				Chương ${chapterList[manga][chapterOrder].chapterNumber} (Đã đọc) : ${chapterList[manga][chapterOrder].chapterName}
 			</option>
 		</select>
 	`;
@@ -447,15 +442,17 @@ async function updateChapterSelectListOptions(headingOrTrailing) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 	// console.log(myChapterList);
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === manga);
-
-	if (mangaIndex === -1) {
+	if (!myChapterList.hasOwnProperty(manga)) {
 		// console.log("Not found mangaId", manga);
 		return html;
 	}
 
 	let isChapterListSorted = await chrome.storage.local.get('chapterListSorted').then((response) => response.chapterListSorted);
-	if (myChapterList[mangaIndex].chapters.length === chapterSelectList.length
+
+	const numberOfKeys = Object.keys(myChapterList[manga]).length;
+	const storedChapterCount = numberOfKeys - 1; //Taking advantage of automatic sort of Object numeric property
+
+	if (storedChapterCount === chapterSelectList.length
 		&& isChapterListSorted === true) {
 		// console.log("No need to update");
 		isChapterListSorted = false;
@@ -463,20 +460,25 @@ async function updateChapterSelectListOptions(headingOrTrailing) {
 	}
 	chapterSelectList.innerHTML = ""; // Clear existing options
 
-	myChapterList[mangaIndex].chapters.map(function(aChapter, index) {
-		const id = myChapterList[mangaIndex].readChapters.includes(aChapter) ? "readselect" : "noreadselect";
+	const keysArray = Object.keys(myChapterList[manga]);
+	const chapterOrdersArray = keysArray.slice(0, -1).map(function (key) {
+		return parseInt(key);
+	});
+	// console.log({ chapterOrdersArray });
+	for (let chapterOrder of chapterOrdersArray) {
+		const id = myChapterList[manga][chapterOrder].read ? "readselect" : "noreadselect";
 
 		const newOption = document.createElement('option');
-		newOption.value = `https://${currentHostname}/mangas/${manga}/chapters/${aChapter}`;
-		// console.log(`Chương ${myChapterList[mangaIndex].chapterNumbers[index]} ${id === "readselect" ? "(Đã đọc)" : ""} : ${myChapterList[mangaIndex].chapterNames[index]}`);
-		newOption.text = `Chương ${myChapterList[mangaIndex].chapterNumbers[index]} ${id === "readselect" ? "(Đã đọc)" : ""} : ${myChapterList[mangaIndex].chapterNames[index]}`;
+		newOption.value = `https://${currentHostname}/mangas/${manga}/chapters/${myChapterList[manga][chapterOrder].chapterId}`;
+
+		newOption.text = `Chương ${myChapterList[manga][chapterOrder].chapterNumber} ${id === "readselect" ? "(Đã đọc)" : ""} : ${myChapterList[manga][chapterOrder].chapterName}`;
 		newOption.id = id;
 
-		if (aChapter === chapter) {
+		if (myChapterList[manga][chapterOrder].chapterId === chapter) {
 			newOption.selected = "selected"
 		}
 		chapterSelectList.appendChild(newOption);
-	});
+	}
 
 	await chrome.storage.local.set({ chapterListSorted: isChapterListSorted });
 }
@@ -525,6 +527,7 @@ async function PageUpPageDownOverride(event) {
 		event.preventDefault(); // Prevent default PageUp behavior
 		
 		window.scrollBy(0, -window.innerHeight * 2/3.0); // Scroll up by one page
+		return;
 	}
 	if (event.key === "PageDown") {
 		// PageDown
@@ -533,6 +536,7 @@ async function PageUpPageDownOverride(event) {
 		event.preventDefault(); // Prevent default PageDown behavior
 		
 		window.scrollBy(0, window.innerHeight * 2/3.0); // Scroll down by one page
+		return;
 	}
 
 	// Replacement for the PageUp and PageDown keys (needing some other keys to handle go to previous/next chapters)
@@ -553,45 +557,28 @@ async function PageUpPageDownOverride(event) {
 
 	// console.log({myChapterList});
 
-	const mangaIndex = myChapterList.findIndex((item) => item.mangaId === manga);
-
-	if (mangaIndex === -1) {
+	if (!myChapterList.hasOwnProperty(manga)) {
 		// console.log("Manga not found");
 		return;
 	}
 
-	const chapterIndex = myChapterList[mangaIndex].chapters.findIndex((item) => item === chapter);
+	const keysArray = Object.keys(myChapterList[manga]);
+	const chapterOrdersArray = keysArray.slice(0, -1).map(function (key) {
+		return parseInt(key);
+	});
 
-	if (chapterIndex === -1) {
+	let chapterOrderIndex = chapterOrdersArray.findIndex((chapterOrder) => myChapterList[manga][chapterOrder].chapterId === chapter);
+	// let chapterOrder = chapterOrdersArray.find(key => myChapterList[manga][key].chapterId === chapter);
+
+	if (chapterOrderIndex === -1) {
 		// console.log("Chapter not found");
 		return;
 	}
+	// chapterOrder = parseInt(chapterOrder);
 
-	// Assume sortOrder === "descending" (refer to sortOrder in background script).
-	// Swap the + and - if change sortOrder to "ascending";
-	// Or just let the nextChapterOrder and previousChapterOrder handle the order.
-	let nextChapterId = myChapterList[mangaIndex].chapters[chapterIndex - 1];
-	let previousChapterId = myChapterList[mangaIndex].chapters[chapterIndex + 1];
-
-	let nextChapterOrder = myChapterList[mangaIndex].chapterOrders[chapterIndex - 1];;
-	let previousChapterOrder = myChapterList[mangaIndex].chapterOrders[chapterIndex + 1];
-
-	// console.log("Before order check");
-	// console.log({ nextChapterOrder });
-	// console.log({ previousChapterOrder });
-
-	// Check the order of the chapters.
-	// Next chapter always has higher order than previous chapter.
-	if (nextChapterOrder < previousChapterOrder) {
-		[nextChapterId, previousChapterId] = [previousChapterId, nextChapterId];
-		[nextChapterOrder, previousChapterOrder] = [previousChapterOrder, nextChapterOrder];
-	}
-	// console.log("After order check");
-	// console.log({ nextChapterOrder });
-	// console.log({ previousChapterOrder });
-
-	const nextChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${nextChapterId}`;
-	const previousChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${previousChapterId}`;
+	// console.log({ chapterOrderIndex });
+	// console.log({ nextChapterOrderIndex: chapterOrderIndex + 1 });
+	// console.log({ previousChapterOrderIndex: chapterOrderIndex - 1 });
 
 	// To next chapter (equivalent to Cứu Truyện's customized behavior for PageUp)
 	if (event.key === "Insert") {
@@ -600,7 +587,17 @@ async function PageUpPageDownOverride(event) {
 		event.stopImmediatePropagation(); // Prevent any overridden Insert behavior
 		event.preventDefault(); // Prevent default Insert behavior
 		
-		gotoChapter(nextChapterHref);
+		if (chapterOrderIndex + 1 < chapterOrdersArray.length) {
+			// console.log(myChapterList[manga][chapterOrdersArray[chapterOrderIndex + 1]].chapterId);
+
+			const nextChapterId = myChapterList[manga][chapterOrdersArray[chapterOrderIndex + 1]].chapterId;
+			const nextChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${nextChapterId}`;
+
+			gotoChapter(nextChapterHref);
+		}
+		else {
+			return;
+		}
 	}
 	// To previous chapter (equivalent to Cứu Truyện's customized behavior for PageDown)
 	if (event.key === "Delete") {
@@ -609,7 +606,17 @@ async function PageUpPageDownOverride(event) {
 		event.stopImmediatePropagation(); // Prevent any overridden Delete behavior
 		event.preventDefault(); // Prevent default Delete behavior
 		
-		gotoChapter(previousChapterHref);
+		if (chapterOrderIndex - 1 >= 0) {
+			// console.log(myChapterList[manga][chapterOrdersArray[chapterOrderIndex - 1]].chapterId);
+
+			const previousChapterId = myChapterList[manga][chapterOrdersArray[chapterOrderIndex - 1]].chapterId;
+			const previousChapterHref = `https://${currentHostname}/mangas/${manga}/chapters/${previousChapterId}`;
+
+			gotoChapter(previousChapterHref);
+		}
+		else{
+			return;
+		}
 	}
 }
 

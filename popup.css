@@ -34,14 +34,14 @@ table tr:nth-child(even) {
 	background-color: #f5f5f5;
 }
 
+table tr.read {
+	background-color: #00bb22;
+}
+
 button {
 	cursor: pointer;
 	font-weight: bold;
 	padding: 5px 5px;
-}
-
-#read {
-	background-color: #00bb22;
 }
 
 .hidden {

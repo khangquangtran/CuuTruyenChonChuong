@@ -6,7 +6,7 @@ let extensionSavedOptions = {
 		CuonTrang: false
 	},
 	XoaTruyen: false,
-	XoaDaDocTruyen: false
+	XoaDaDocChuong: false
 }
 
 const port = chrome.runtime.connect({name:"getInfo"});
@@ -41,8 +41,20 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 					// console.log("At: " + data_id);
 					gotoManga({ 
 						cuutruyenHostname: activeChapterData.cuutruyenHostname,
-						mangaId: data_id
+						mangaId: parseInt(data_id)
 					});
+				}))
+			});
+
+			document.querySelectorAll("#removeReadManga").forEach((button) => {
+				button.addEventListener("click", (() => {
+					// console.log("Button Clicked");
+					const data_id = button.getAttribute("data-id");
+					// console.log("At: " + data_id);
+					removeReadManga({ 
+						cuutruyenHostname: activeChapterData.cuutruyenHostname,
+						mangaId: parseInt(data_id)
+					}, button);
 				}))
 			});
 		}
@@ -51,12 +63,12 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 			// console.log("Chapter list");
 			document.getElementById("ChonChuongTable").innerHTML = await renderChapter(activeChapterData);
 
-			const currentChapterRow = document.querySelector(`.c${activeChapterData.chapterId}`);
+			const currentChapterRow = document.querySelector(`[data-id="c${activeChapterData.chapterId}"]`);
 
 			// Cuộn danh sách chương để chương hiện tại nằm dưới cùng trong vùng nhìn
 			currentChapterRow.scrollIntoView({
 				behavior: 'smooth',
-				block: 'end' }
+				block: 'start' }
 			);
 
 			document.querySelectorAll("#gotoChapter").forEach((button) => {
@@ -68,9 +80,24 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 					// console.log("At: " + splitDataId[0] + "/" + splitDataId[1]);
 					gotoChapter({ 
 						cuutruyenHostname: activeChapterData.cuutruyenHostname,
-						mangaId: splitDataId[0],
-						chapterId: splitDataId[1]
+						mangaId: parseInt(splitDataId[0]),
+						chapterId: parseInt(splitDataId[1])
 					});
+				}))
+			});
+
+			document.querySelectorAll("#removeReadChapter").forEach((button) => {
+				button.addEventListener("click", (() => {
+					// console.log("Button Clicked");
+					const data_id = button.getAttribute("data-id");
+					// console.log(data_id);
+					const splitDataId = data_id.split(".");
+					// console.log("At: " + splitDataId[0] + "/" + splitDataId[1]);
+					removeReadChapter({ 
+						cuutruyenHostname: activeChapterData.cuutruyenHostname,
+						mangaId: parseInt(splitDataId[0]),
+						chapterId: parseInt(splitDataId[1])
+					}, button);
 				}))
 			});
 		}
@@ -85,6 +112,14 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 			</thead>
 		`;
 		document.getElementById("ChonChuongTable").innerHTML = theadHtml;
+	}
+});
+
+chrome.storage.onChanged.addListener(async function (changes, namespace) {
+	// console.log("A change in local storage");
+	if (namespace === "local") {
+		// console.log("Update savedOptions");
+		extensionSavedOptions = await chrome.storage.local.get('savedOptions').then((response) => response.savedOptions);
 	}
 });
 
@@ -120,14 +155,13 @@ async function renderManga(mangaData) {
 async function fetchChapters(chapterData) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-	const resultItem = myChapterList.find((item) => item.mangaId === chapterData.mangaId);
-
-	if (!resultItem)
+	if (!myChapterList.hasOwnProperty(chapterData.mangaId))
 	{
 		// console.log("Not found");
 		return null;
 	}
 	// console.log("Found Item") ;
+	const resultItem = myChapterList[chapterData.mangaId];
 
 	return resultItem;
 }
@@ -135,11 +169,14 @@ async function fetchChapters(chapterData) {
 async function fetchMangas(mangaData) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 
-	const resultMangaList = myChapterList.map((item) => ({
-		mangaId: item.mangaId,
-		mangaName: item.mangaName
-	}));
+	const resultMangaList = Object.entries(myChapterList).map(([key, value]) => (
+		{
+			mangaId: key,
+			mangaName: value.mangaName
+		}
+	));
 
+	// console.log({ resultMangaList });
 	if (!resultMangaList)
 	{
 		// console.log("Not found");
@@ -151,35 +188,75 @@ async function fetchMangas(mangaData) {
 }
 
 async function constructTableChapter(mangaChapterList, chapterData) {
-	const theadHtml = `
-		<thead>
-			<tr>
-				<th>Chương</th>
-				<th>Tên Chương</th>
-				<th>Chuyển Chương</th>
-			</tr>
-		</thead>
-	`;
+	let theadHtml = "";
+	if (extensionSavedOptions.XoaDaDocChuong === true){
+		theadHtml = `
+			<thead>
+				<tr>
+					<th>Chương</th>
+					<th>Tên Chương</th>
+					<th>Chuyển Chương</th>
+					<th></th>
+				</tr>
+			</thead>
+		`;
+	}
+	else if (extensionSavedOptions.XoaDaDocChuong === false){
+		theadHtml = `
+			<thead>
+				<tr>
+					<th>Chương</th>
+					<th>Tên Chương</th>
+					<th>Chuyển Chương</th>
+				</tr>
+			</thead>
+		`;
+	}
 	// console.log("Done thead");
 
 	// console.log(mangaChapterList);
+
+	let html = "";
+	const keysArray = Object.keys(mangaChapterList);
+	const chapterOrdersArray = keysArray.slice(0, -1).map(function (key) {
+		return parseInt(key);
+	});
+	// console.log({ chapterOrdersArray });
+	for (let chapterOrder of chapterOrdersArray) {
+		// console.log({ chapterOrder });
+		const readClass = mangaChapterList[chapterOrder].read ? "read" : "noread";
+		// console.log({ readClass });
+
+		const currentId = mangaChapterList[chapterOrder].chapterId === chapterData.chapterId ? chapterData.chapterId : 0;
+
+		// console.log.log(chapterData.mangaId, ".", chapterData.chapterId);
+
+		if (extensionSavedOptions.XoaDaDocChuong === true) {
+			html += 
+				`
+				<tr class=${readClass} data-id="c${currentId}">
+					<td>${mangaChapterList[chapterOrder].chapterNumber}</td>
+					<td>${mangaChapterList[chapterOrder].chapterName}</td>
+					<td><button id="gotoChapter" data-id="${chapterData.mangaId}.${mangaChapterList[chapterOrder].chapterId}">Đọc</button></td>
+					<td><button id="removeReadChapter" data-id="${chapterData.mangaId}.${mangaChapterList[chapterOrder].chapterId}">Xóa</button></td>
+				</tr>
+				`;
+		}
+		else if (extensionSavedOptions.XoaDaDocChuong === false) {
+			html += 
+				`
+				<tr class=${readClass} data-id="c${currentId}">
+					<td>${mangaChapterList[chapterOrder].chapterNumber}</td>
+					<td>${mangaChapterList[chapterOrder].chapterName}</td>
+					<td><button id="gotoChapter" data-id="${chapterData.mangaId}.${mangaChapterList[chapterOrder].chapterId}">Đọc</button></td>
+				</tr>
+				`;
+		}
+	}
+
 	const tbodyHtml = `
 		<tbody>
-			${mangaChapterList.chapters.map(function(chapter, index) {
-				// console.log("This chapter", chapter);
-				const id = mangaChapterList.readChapters.some((readChapter) => readChapter === chapter) ? "read" : "noread";
-
-				const currentId = chapter === chapterData.chapterId ? chapter : 0;
-
-				return (
-				`
-				<tr id="${id}" class="c${currentId}">
-					<td>${mangaChapterList.chapterNumbers[index]}</td>
-					<td>${mangaChapterList.chapterNames[index]}</td>
-					<td><button id="gotoChapter" data-id="${mangaChapterList.mangaId}.${chapter}">Đọc</button></td>
-				</tr>
-				`)
-			}).join("")}
+			${html}
 		</tbody>
 	`;
 	// console.log("Done tbody");
@@ -188,15 +265,30 @@ async function constructTableChapter(mangaChapterList, chapterData) {
 }
 
 async function constructTableManga(mangaList) {
-	const theadHtml = `
-		<thead>
-			<tr>            
-				<th>STT</th>
-				<th>Truyện</th>
-				<th>Đọc Truyện</th>
-			</tr>
-		</thead>
-	`;
+	let theadHtml = "";
+	if (extensionSavedOptions.XoaTruyen === true) {
+		theadHtml = `
+			<thead>
+				<tr>            
+					<th>STT</th>
+					<th>Truyện</th>
+					<th>Đọc Truyện</th>
+					<th></th>
+				</tr>
+			</thead>
+		`;
+	}
+	else if (extensionSavedOptions.XoaTruyen === false) {
+		theadHtml = `
+			<thead>
+				<tr>            
+					<th>STT</th>
+					<th>Truyện</th>
+					<th>Đọc Truyện</th>
+				</tr>
+			</thead>
+		`;
+	}
 	// console.log("Done thead");
 
 	// console.log(mangaList);
@@ -204,15 +296,27 @@ async function constructTableManga(mangaList) {
 		<tbody>
 			${mangaList.map(function({mangaId, mangaName}, index) {
 				// console.log("This manga", mangaId, mangaName);
-
-				return (
-				`
-				<tr">
-					<td>${index+1}</td>
-					<td>${mangaName}</td>
-					<td><button id="gotoManga" data-id="${mangaId}">Đọc</button></td>
-				</tr>
-				`)
+				if (extensionSavedOptions.XoaTruyen === true) {
+					return (
+						`
+						<tr>
+							<td>${index+1}</td>
+							<td>${mangaName}</td>
+							<td><button id="gotoManga" data-id="${mangaId}">Đọc</button></td>
+							<td><button id="removeReadManga" data-id="${mangaId}">Xóa</button></td>
+						</tr>
+						`)
+				}
+				else if (extensionSavedOptions.XoaTruyen === false) {
+					return (
+						`
+						<tr>
+							<td>${index+1}</td>
+							<td>${mangaName}</td>
+							<td><button id="gotoManga" data-id="${mangaId}">Đọc</button></td>
+						</tr>
+						`)
+				}
 			}).join("")}
 		</tbody>
 	`;
@@ -240,5 +344,72 @@ async function gotoManga(mangaData) {
 		const activeTabId = tabs[0].id;
 		// Redirect the active tab
 		chrome.tabs.update(activeTabId, { url: mangaUrl });
+	});
+}
+
+async function removeReadChapter(chapterData, button) {
+	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+	// console.log({myChapterList});
+
+	if (!myChapterList.hasOwnProperty(chapterData.mangaId)) {
+		// console.log("Manga not found");
+		return;
+	}
+	// console.log({ mangaId: chapterData.mangaId });
+
+	let chapterOrder = Object.keys(myChapterList[chapterData.mangaId]).find(key => myChapterList[chapterData.mangaId][key].chapterId === chapterData.chapterId);
+
+	// console.log({ chapterOrder });
+	if (!chapterOrder) {
+		// console.log("Chapter not found");
+		return;
+	}
+	chapterOrder = parseInt(chapterOrder);
+
+	myChapterList[chapterData.mangaId][chapterOrder].read = false;
+
+	await chrome.storage.local.set({ chapterList: myChapterList });
+	await chrome.storage.local.set({ isChapterListSorted: false });
+
+	// Get the table row reference
+	const row = button.parentNode.parentNode;
+
+	// Update the table row id
+	row.classList = "noread";
+}
+
+async function removeReadManga(mangaData, button) {
+	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
+
+	// console.log({myChapterList});
+
+	if (!myChapterList.hasOwnProperty(mangaData.mangaId)) {
+		// console.log("Manga not found");
+		return;
+	}
+
+	delete myChapterList[mangaData.mangaId];
+
+	await chrome.storage.local.set({ chapterList: myChapterList });
+
+	// Get the table row reference
+	const row = button.parentNode.parentNode;
+
+	// Remove the table row
+	const tbody = row.parentNode;
+	tbody.removeChild(row);
+
+	// Update the indinces of the other rows
+	updateRowIndices(tbody);
+}
+
+function updateRowIndices(tbody) {
+	// Get all table rows in the table body
+	const rows = tbody.querySelectorAll("tr");
+
+	// Update the indices of each row
+	rows.forEach(function (row, index) {
+		row.querySelector("td:first-child").textContent = index + 1;
 	});
 }
