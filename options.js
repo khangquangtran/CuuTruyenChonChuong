@@ -128,7 +128,7 @@ async function refreshOptionsPage(allOrSome) {
 			if (importInput.value === '' || !importInput.value.includes(".json")) {
 				importInput.value = '';
 				importInputButton.style.background = 'lightgray';
-				importInputLabel.innerText = "Chưa có tệp nào được chọn | Tệp không phù hợp";
+				importInputLabel.innerText = "Chưa có tệp nào được chọn. | Tệp không phù hợp!";
 				importInputLabel.style.color = 'red';
 
 				importAddButton.disabled = true;
@@ -333,6 +333,8 @@ async function importData(addOrReplace) {
 				// console.log("Imported data:");
 				// console.log({ data });
 
+				importInputLabel.innerText = "Đang nhập dữ liệu...";
+				importInputLabel.style.color = 'blue';
 				await convertChapterListIntoNewStructure(data);
 				// console.log("Imported data with chapter list after new structure conversion");
 				// console.log(data);
@@ -350,7 +352,7 @@ async function importData(addOrReplace) {
 
 				importInput.value = '';
 				importInputButton.style.background = 'lightgray';
-				importInputLabel.innerText = "Nhập dữ liệu thành công";
+				importInputLabel.innerText = "Nhập dữ liệu thành công!";
 				importInputLabel.style.color = 'green';
 
 
@@ -360,7 +362,7 @@ async function importData(addOrReplace) {
 			catch (error) {
 				importInput.value = '';
 				importInputButton.style.background = 'lightgray';
-				importInputLabel.innerText = "Nhập dữ liệu thất bại";
+				importInputLabel.innerText = "Nhập dữ liệu thất bại!";
 				importInputLabel.style.color = 'red';
 
 				importAddButton.disabled = true;
@@ -390,6 +392,9 @@ async function convertChapterListIntoNewStructure(importedData) {
 		return;
 	}
 
+	const cuutruyenHostnames = await chrome.storage.local.get('cuutruyenHostnames').then((response) => response.cuutruyenHostnames);
+	const cuutruyenApiChapterUrl = "https://" + cuutruyenHostnames[0] + "/api/v2/chapters/";
+
 	for (let listIndex = 0; listIndex < importedData.chapterList.length; listIndex++) {
 		const mangaDetails = importedData.chapterList[listIndex];
 		const mangaId = mangaDetails.mangaId;
@@ -398,12 +403,21 @@ async function convertChapterListIntoNewStructure(importedData) {
 			mangaName: mangaDetails.mangaName
 		};
 
-		for (let chapterIndex = 0; chapterIndex < mangaDetails.chapterOrders.length; chapterIndex++) {
-			const chapterOrder = mangaDetails.chapterOrders[chapterIndex];
+		for (let chapterIndex = 0; chapterIndex < mangaDetails.chapters.length; chapterIndex++) {
 			const chapterId = mangaDetails.chapters[chapterIndex];
 			const chapterName = mangaDetails.chapterNames[chapterIndex];
 			const chapterNumber = mangaDetails.chapterNumbers[chapterIndex];
 			const read = mangaDetails.readChapters.includes(chapterId) ? true : false;
+
+			// console.log(cuutruyenApiChapterUrl);
+			// console.log("cuutruyenApiChapterUrl: " + cuutruyenApiChapterUrl);
+
+			// console.log("Complete API URL: " + cuutruyenApiChapterUrl + chapterId.toString());
+
+			const apiResponse = await fetch(cuutruyenApiChapterUrl + chapterId.toString()).then((response) => response.json());
+			const data = apiResponse.data;
+
+			const chapterOrder = data.order;
 
 			newStructureChapterList[mangaId][chapterOrder] = {
 				chapterId: chapterId,
@@ -416,14 +430,12 @@ async function convertChapterListIntoNewStructure(importedData) {
 		// console.log({ aChapter: newStructureChapterList[mangaId][0] });
 	}
 
-	// console.log({ newStructureChapterList });
+	console.log({ newStructureChapterList });
 
 	importedData.chapterList = newStructureChapterList;
-	// await chrome.storage.local.set({ chapterList: newStructureChapterList });
 
 	// console.log("Finish converting chapterList to new structure");
 }
-
 
 async function handleDataMerge(data) {
 	// console.log("Merge/Update imported data with existing storage.local data");
@@ -486,16 +498,56 @@ async function handleChapterListData(existingData, newData) {
 	else 
 	{
 		for (let mangaId in newData) {
-			if (existingData.hasOwnProperty(mangaId)) {
-				for (let chapterOrder in existingData[mangaId]) {
+			// console.log({ mangaId });
+			const intMangaId = parseInt(mangaId);
+
+			if (Object.hasOwn(existingData, mangaId)) {
+				for (let chapterOrder in newData[intMangaId]) {
 					// If the read status from newData is true, use it.
 					// If not, keep the read status from existingData
-					existingData[mangaId][chapterOrder].read = newData[mangaId][chapterOrder].read ? newData[mangaId][chapterOrder].read : existingData[mangaId][chapterOrder].read;
+					// console.log(chapterOrder, { existing: existingData[intMangaId][chapterOrder] });
+					// console.log(chapterOrder, { new: newData[intMangaId][chapterOrder] });
+
+					if (!Object.hasOwn(existingData[intMangaId], chapterOrder)) {
+						// Really unnecessary.
+						// Number of chapter orders in newData <= Number of chapter orders in exisitingData
+						// console.log({ chapterOrder });
+						// console.log("Not found chapterOrder");
+						break;
+					}
+
+					if (isNaN(parseInt(chapterOrder))) {
+						// Manga name
+						// console.log("Not a chapter order. A manga name");
+						// console.log({ mangaName: existingData[intMangaId][chapterOrder] });
+						break;
+					}
+					const intChapterOrder = parseInt(chapterOrder);
+					// console.log(!Object.hasOwn(existingData[intMangaId][intChapterOrder], 'read'));
+
+					if (!Object.hasOwn(newData[intMangaId][intChapterOrder], 'read')) {
+						// mangaName, not chapterOrder
+						// console.log("NewData: Not found read property");
+						break;
+					}
+					if (!Object.hasOwn(existingData[intMangaId][intChapterOrder], 'read')) {
+						// mangaName, not chapterOrder
+						// console.log("ExistingData: Not found read property");
+						break;
+					}
+					
+					// Keep the existing read status, unless imported read status is true
+					existingData[intMangaId][intChapterOrder].read = 
+						newData[intMangaId][intChapterOrder].read
+						? newData[intMangaId][intChapterOrder].read
+						: existingData[intMangaId][intChapterOrder].read;
 				}
 				await chrome.storage.local.set({ chapterList: existingData });
 			}
 			else {
-				existingData[mangaId] = newData[mangaId];
+				// console.log("ExistingData: Not found mangaId. Assign from newData");
+				existingData[intMangaId] = newData[intMangaId];
+				// console.log(intMangaId, { mangaDetails: newData[intMangaId] });
 				await chrome.storage.local.set({ chapterList: existingData });
 			}
 		}

@@ -377,7 +377,7 @@ function constructChapterSelectList(navigationButtonGroup, windowLocation, chapt
 		return `${navigationButtonGroup.innerHTML}`;
 	}
 
-	if (!chapterList.hasOwnProperty(manga)) {
+	if (!Object.hasOwn(chapterList, manga)) {
 		// console.log("Not found mangaId", manga);
 		return `${navigationButtonGroup.innerHTML}`;
 	}
@@ -442,7 +442,7 @@ async function updateChapterSelectListOptions(headingOrTrailing) {
 	const myChapterList = await chrome.storage.local.get('chapterList').then((response) => response.chapterList);
 	// console.log(myChapterList);
 
-	if (!myChapterList.hasOwnProperty(manga)) {
+	if (!Object.hasOwn(myChapterList, manga)) {
 		// console.log("Not found mangaId", manga);
 		return html;
 	}
@@ -557,7 +557,7 @@ async function PageUpPageDownOverride(event) {
 
 	// console.log({myChapterList});
 
-	if (!myChapterList.hasOwnProperty(manga)) {
+	if (!Object.hasOwn(myChapterList, manga)) {
 		// console.log("Manga not found");
 		return;
 	}

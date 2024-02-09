@@ -1,4 +1,4 @@
-# CuuTruyenChonChuong - Phiên bản 0.7
+# CuuTruyenChonChuong - Phiên bản 0.8
 Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https://cuutruyen.net/)
 
 **Bổ sung:** Lưu các truyện và chương đã đọc
@@ -30,7 +30,7 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- Hoàn thành: [Trang 3](https://cuutruyent9sv7.xyz/)
 
 ## Hướng dẫn cài đặt
-**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.6 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
+**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.7 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
 
 **Lưu ý:** Các trình duyệt mạng nhân Chromium như Cốc Cốc, Google Chrome, Microsoft Edge, Yandex, Kiwi, ... đều có cách cài đặt tương tự.
 
@@ -156,4 +156,4 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 
 ## Ghi công
 - Hình đại diện của tiện ích mở rộng được thu nhỏ và phóng to kèm với đổi màu từ hình đại diện (favicon) của trang [Cứu Truyện](https://cuutruyen.net/)
-- Tiện ích mở rộng này được phát triển dựa trên ý tưởng và mã nguồn của tiện ích mở rộng [Cửu Truyện - Lưu Lịch Sử](https://github.com/huyhoangg9owl/CuuTruyenSaveHistory), được phát triển bởi [Huy Hoangg](https://github.com/huyhoangg9owl).
+- Tiện ích mở rộng này được phát triển dựa trên ý tưởng và mã nguồn của tiện ích mở rộng [Cửu Truyện - Lưu Lịch Sử](https://github.com/huyhoangg9owl/CuuTruyenSaveHistory) (nay là [CuuTruyenExt](https://github.com/huyhoangg9owl/CuuTruyenExt)), được phát triển bởi [Huy Hoangg](https://github.com/huyhoangg9owl).
