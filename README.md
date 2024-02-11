@@ -1,4 +1,4 @@
-# CuuTruyenChonChuong - Phiên bản 0.8
+# CuuTruyenChonChuong - Phiên bản 0.9
 Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https://cuutruyen.net/)
 
 **Bổ sung:** Lưu các truyện và chương đã đọc
@@ -30,7 +30,7 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- Hoàn thành: [Trang 3](https://cuutruyent9sv7.xyz/)
 
 ## Hướng dẫn cài đặt
-**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.7 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
+**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.8 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
 
 **Lưu ý:** Các trình duyệt mạng nhân Chromium như Cốc Cốc, Google Chrome, Microsoft Edge, Yandex, Kiwi, ... đều có cách cài đặt tương tự.
 

@@ -218,9 +218,12 @@ async function constructTableChapter(mangaChapterList, chapterData) {
 
 	let html = "";
 	const keysArray = Object.keys(mangaChapterList);
+	// slice và map trả về 1 mảng chapter order dạng số nguyên, nhưng không sắp xếp đúng thứ tự nếu có chapter order giá trị âm
+	// sort sẽ đảm bảo thứ tự của chapter order, âm -> 0 -> dương
 	const chapterOrdersArray = keysArray.slice(0, -1).map(function (key) {
 		return parseInt(key);
-	});
+	})
+	.sort((chapterOrderA, chapterOrderB) => chapterOrderA-chapterOrderB);
 	// console.log({ chapterOrdersArray });
 	for (let chapterOrder of chapterOrdersArray) {
 		// console.log({ chapterOrder });

@@ -927,3 +927,11 @@ async function fetchPreviousChapter(chapterData) {
 async function sortAndStoreChaperList(chapterData, ascOrDes) {
 	return true;
 }
+
+/*
+Một số ghi chú:
+
+1) Các chapter ID không liên tục. Chương 1 (chapter number) có thể có chapter ID 1, nhưng chương 2 (chapter number) có thể có chapter ID 100.
+2) Các chapter ID không đảm bảo tính thứ tự. Chương 1 (chapter number) có thể có chapter ID 60, nhưng chương 2 (chapter number) có thể có chapter ID 3. Tham khảo truyện Dr. Stone.
+3) Các order đảm bảo tính thứ tự. Tuy nhiên, có thể có order với giá trị âm. Nếu không xử lý dữ liệu đúng cách, chương có order âm sẽ được liệt kê ở sau chương có order dương. Tham khảo truyện Grand Blue.
+*/
