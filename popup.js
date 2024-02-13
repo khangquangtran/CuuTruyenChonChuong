@@ -34,6 +34,11 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 			// console.log("Manga list");
 			document.getElementById("ChonChuongTable").innerHTML = await renderManga(activeChapterData);
 
+			// Cố định thanh tiêu đề bảng khi cuộn danh sách truyện
+			const tableHeader = document.getElementById("ChonChuongTable").getElementsByTagName("thead")[0];
+			tableHeader.style.position = "sticky";
+			tableHeader.style.top = "0";
+
 			document.querySelectorAll("#gotoManga").forEach((button) => {
 				button.addEventListener("click", (() => {
 					// console.log("Button Clicked");
@@ -62,6 +67,11 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 			// Liệt kê các chương của truyện, tại trang thông tin truyện và tại trang chương truyện
 			// console.log("Chapter list");
 			document.getElementById("ChonChuongTable").innerHTML = await renderChapter(activeChapterData);
+
+			// Cố định thanh tiêu đề bảng khi cuộn danh sách chương truyện
+			const tableHeader = document.getElementById("ChonChuongTable").getElementsByTagName("thead")[0];
+			tableHeader.style.position = "sticky";
+			tableHeader.style.top = "0";
 
 			const currentChapterRow = document.querySelector(`[data-id="c${activeChapterData.chapterId}"]`);
 
