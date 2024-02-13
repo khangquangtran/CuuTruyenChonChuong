@@ -69,17 +69,20 @@ port.onMessage.addListener(async function ({message}, sender, sendResponse) {
 			document.getElementById("ChonChuongTable").innerHTML = await renderChapter(activeChapterData);
 
 			// Cố định thanh tiêu đề bảng khi cuộn danh sách chương truyện
-			const tableHeader = document.getElementById("ChonChuongTable").getElementsByTagName("thead")[0];
+			const tableHeader = document.getElementById("ChonChuongTable").querySelector("thead");
 			tableHeader.style.position = "sticky";
 			tableHeader.style.top = "0";
 
-			const currentChapterRow = document.querySelector(`[data-id="c${activeChapterData.chapterId}"]`);
+			// console.log(activeChapterData.chapterId);
+			if (activeChapterData.chapterId !== 0) {
+				const currentChapterRow = document.getElementById("ChonChuongTable").querySelector(`[data-id="c${activeChapterData.chapterId}"]`);
 
-			// Cuộn danh sách chương để chương hiện tại nằm dưới cùng trong vùng nhìn
-			currentChapterRow.scrollIntoView({
-				behavior: 'smooth',
-				block: 'start' }
-			);
+				// Cuộn danh sách chương để chương hiện tại nằm trên cùng trong vùng nhìn
+				currentChapterRow.scrollIntoView({
+					behavior: 'smooth',
+					block: 'start' }
+				);
+			}
 
 			document.querySelectorAll("#gotoChapter").forEach((button) => {
 				button.addEventListener("click", (() => {

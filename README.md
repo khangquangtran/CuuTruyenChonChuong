@@ -1,4 +1,4 @@
-# CuuTruyenChonChuong - Phiên bản 1.0
+# CuuTruyenChonChuong - Phiên bản 1.1
 Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https://cuutruyen.net/)
 
 **Bổ sung:** Lưu các truyện và chương đã đọc
@@ -30,7 +30,7 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- Hoàn thành: [Trang 3](https://cuutruyent9sv7.xyz/)
 
 ## Hướng dẫn cài đặt
-**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 0.9 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
+**Lưu ý:** Vui lòng đọc mục [Hướng dẫn cập nhật](#hướng-dẫn-cập-nhật), nếu đã cài đặt phiên bản trước của tiện ích mở rộng này (phiên bản 1.0 trở về trước), để tránh xóa mất danh sách truyện và chương đã đọc.
 
 **Lưu ý:** Các trình duyệt mạng nhân Chromium như Cốc Cốc, Google Chrome, Microsoft Edge, Yandex, Kiwi, ... đều có cách cài đặt tương tự.
 
@@ -95,7 +95,7 @@ Chọn chương truyện khi đang đọc truyện trên [Cứu Truyện](https:
 	- Bước 2: Danh sách chương truyện của truyện đang đọc sẽ hiện ra. Chương nào đã đọc sẽ có đánh dấu "đã đọc".
 	- Bước 3: Nhấn vào lựa chọn để đi tới chương muốn đọc.
 	- **Lưu ý:** Danh sách chương có thể sẽ không đầy đủ ở lần đầu nhấn nút tiện ích. Vui lòng nhấn lại một hay nhiều lần để danh sách được cập nhật đầy đủ.
-	- **Lưu ý:** Ở lần nhấn đầu, các chương cuối của truyện có thể sẽ được hiện ra trong vùng nhìn của danh sách xổ. Ở các lần nhấn sau, chương đang đọc sẽ được hiện ra trong trong vùng nhìn của danh sách xổ.
+	- **Lưu ý:** Ở lần nhấn đầu, các chương đầu/cuối của truyện có thể sẽ được hiện ra trong vùng nhìn của danh sách xổ. Ở các lần nhấn sau, chương đang đọc sẽ được hiện ra trong trong vùng nhìn của danh sách xổ.
 	- **Lưu ý:** Thanh xổ có thể không hiện ra khi vào trang chương truyện. Vui lòng nhấn qua lại các nút chọn giao diện một hay nhiều lần, hoặc làm mới trang, để thanh xổ hiện ra.
 
 - Để vào trang tùy chọn của tiện ích mở rộng:
